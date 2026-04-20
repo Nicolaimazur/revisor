@@ -302,28 +302,52 @@
 
     </div>
 
-    <!-- Progress steps (shown while generating) -->
+    <!-- Progress panel (shown while generating) -->
     <div id="progress-panel" class="hidden">
       <div class="bg-surface-container-lowest rounded-xl p-10 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] max-w-xl">
-        <h3 class="text-xl font-headline font-bold mb-8 text-on-surface">Udarbejder rapport…</h3>
-        <div class="space-y-5" id="progress-steps">
-          <div class="progress-step flex items-center gap-4" data-step="0">
-            <div class="step-icon w-7 h-7 rounded-full border-2 border-outline-variant/40 flex items-center justify-center flex-shrink-0"></div>
-            <span class="text-sm text-on-surface-variant">Henter CVR-data fra Erhvervsstyrelsen</span>
+
+        <!-- Header -->
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-5 h-5 rounded-full border-2 border-primary border-t-transparent animate-spin flex-shrink-0"></div>
+          <h3 class="text-xl font-headline font-bold text-on-surface">Udarbejder rapport…</h3>
+        </div>
+
+        <!-- Nuværende trin fra server -->
+        <p id="progress-step-text" class="text-sm text-on-surface-variant mb-6 pl-8">Starter op…</p>
+
+        <!-- Progress bar -->
+        <div class="w-full h-2 bg-surface-container-low rounded-full overflow-hidden mb-2">
+          <div id="progress-bar-fill"
+               class="h-full bg-primary rounded-full transition-all duration-1000 ease-out"
+               style="width: 0%"></div>
+        </div>
+
+        <!-- Tid elapsed -->
+        <div class="flex justify-between text-xs text-on-surface-variant/60 mb-8">
+          <span id="progress-pct-text">0%</span>
+          <span id="progress-timer-text">0 sek.</span>
+        </div>
+
+        <!-- Trin-liste -->
+        <div class="space-y-4" id="progress-steps">
+          <div class="progress-step flex items-center gap-3" data-step="0">
+            <div class="step-icon w-6 h-6 rounded-full border-2 border-outline-variant/30 flex items-center justify-center flex-shrink-0 text-xs"></div>
+            <span class="text-sm text-on-surface-variant">Opretter forbindelse til CVR-registeret</span>
           </div>
-          <div class="progress-step flex items-center gap-4" data-step="1">
-            <div class="step-icon w-7 h-7 rounded-full border-2 border-outline-variant/40 flex items-center justify-center flex-shrink-0"></div>
-            <span class="text-sm text-on-surface-variant">Analyserer selskabsstruktur og ledelse</span>
+          <div class="progress-step flex items-center gap-3" data-step="1">
+            <div class="step-icon w-6 h-6 rounded-full border-2 border-outline-variant/30 flex items-center justify-center flex-shrink-0 text-xs"></div>
+            <span class="text-sm text-on-surface-variant">Henter virksomhedsdata, ejere og ledelse</span>
           </div>
-          <div class="progress-step flex items-center gap-4" data-step="2">
-            <div class="step-icon w-7 h-7 rounded-full border-2 border-outline-variant/40 flex items-center justify-center flex-shrink-0"></div>
-            <span class="text-sm text-on-surface-variant">Genererer finansiel analyse og risikovurdering</span>
+          <div class="progress-step flex items-center gap-3" data-step="2">
+            <div class="step-icon w-6 h-6 rounded-full border-2 border-outline-variant/30 flex items-center justify-center flex-shrink-0 text-xs"></div>
+            <span class="text-sm text-on-surface-variant">Analyserer med AI — finansiel analyse og risiko</span>
           </div>
-          <div class="progress-step flex items-center gap-4" data-step="3">
-            <div class="step-icon w-7 h-7 rounded-full border-2 border-outline-variant/40 flex items-center justify-center flex-shrink-0"></div>
-            <span class="text-sm text-on-surface-variant">Sammensætter rapport</span>
+          <div class="progress-step flex items-center gap-3" data-step="3">
+            <div class="step-icon w-6 h-6 rounded-full border-2 border-outline-variant/30 flex items-center justify-center flex-shrink-0 text-xs"></div>
+            <span class="text-sm text-on-surface-variant">Sammensætter og gemmer rapport</span>
           </div>
         </div>
+
       </div>
     </div>
 
@@ -1179,9 +1203,39 @@ async function startGenerate() {
 
   resetSteps();
 
+  // ── Progress bar + timer setup ──────────────────────────────────────────
+  const barFill    = document.getElementById('progress-bar-fill');
+  const pctText    = document.getElementById('progress-pct-text');
+  const timerText  = document.getElementById('progress-timer-text');
+  const stepText   = document.getElementById('progress-step-text');
+  let   pct        = 0;
+  let   seconds    = 0;
+  let   timerInterval = null;
+
+  function setProgress(target, label) {
+    pct = Math.max(pct, Math.min(target, 99)); // aldrig 100% før vi er færdige
+    barFill.style.width = pct + '%';
+    pctText.textContent = Math.round(pct) + '%';
+    if (label) stepText.textContent = label;
+  }
+
+  // Timer der tæller sekunder og langsomt øger progress
+  timerInterval = setInterval(() => {
+    seconds++;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    timerText.textContent = m > 0 ? `${m} min. ${s} sek.` : `${s} sek.`;
+
+    // Simulér langsom fremgang mens vi venter — kurven flader ud mod 90%
+    const simTarget = 90 - (90 - pct) * 0.97;
+    setProgress(simTarget);
+  }, 1000);
+
   try {
-    // Trin 1 — Start jobbet (returnerer straks et job_id)
+    // Trin 0 — Start jobbet
     setStep(0, 'active');
+    setProgress(5, 'Starter op…');
+
     const startRes = await _fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1194,11 +1248,12 @@ async function startGenerate() {
     const { job_id } = await startRes.json();
     setStep(0, 'done');
     setStep(1, 'active');
+    setProgress(12, 'Forbundet — henter virksomhedsdata…');
 
-    // Trin 2-3 — Poll hvert 3. sekund indtil færdig
+    // Poll hvert 3. sekund
     let data = null;
     let pollCount = 0;
-    const maxPolls = 120; // max 6 minutter (120 × 3s)
+    const maxPolls = 120; // max 6 minutter
 
     while (pollCount < maxPolls) {
       await sleep(3000);
@@ -1208,15 +1263,18 @@ async function startGenerate() {
       if (!pollRes.ok) throw new Error(`Poll fejlede: HTTP ${pollRes.status}`);
       const job = await pollRes.json();
 
-      // Opdater trin-tekst med hvad serveren laver
+      // Opdater step + progress baseret på hvad serveren melder
       if (job.status === 'running') {
-        const trinTekst = job.trin || 'Arbejder...';
-        if (trinTekst.includes('CVR')) {
+        const trin = job.trin || '';
+        stepText.textContent = trin;
+
+        if (trin.includes('CVR')) {
           setStep(1, 'active');
-          setStep(2, 'pending');
-        } else if (trinTekst.includes('AI') || trinTekst.includes('rapport')) {
+          setProgress(30, trin);
+        } else if (trin.includes('AI') || trin.includes('rapport') || trin.includes('Analyse')) {
           setStep(1, 'done');
           setStep(2, 'active');
+          setProgress(55, trin);
         }
       }
 
@@ -1232,11 +1290,18 @@ async function startGenerate() {
 
     if (!data) throw new Error('Rapport-generering tog for lang tid. Prøv igen.');
 
+    // Afslut animationen
+    clearInterval(timerInterval);
     setStep(1, 'done');
     setStep(2, 'done');
     setStep(3, 'active');
-    await sleep(400);
+    setProgress(95, 'Sammensætter rapport…');
+    await sleep(600);
+    setProgress(100, 'Færdig!');
+    barFill.style.width = '100%';
+    pctText.textContent = '100%';
     setStep(3, 'done');
+    await sleep(400);
 
     state.currentReport = data;
 
@@ -1261,10 +1326,12 @@ async function startGenerate() {
     navigate('report');
 
   } catch (e) {
+    clearInterval(timerInterval);
     setStep(3, 'error');
     errText.textContent = `Fejl: ${e.message}`;
     errEl.classList.remove('hidden');
   } finally {
+    clearInterval(timerInterval);
     document.getElementById('search-btn').disabled = false;
     document.getElementById('search-btn-text').textContent = 'SØG';
     document.getElementById('progress-panel').classList.add('hidden');
