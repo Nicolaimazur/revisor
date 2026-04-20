@@ -29,15 +29,25 @@ PROFF_HOME = "https://www.proff.dk/"
 PROFF_SEARCH_URL = "https://www.proff.dk/_next/data/{build_id}/search.json?q={cvr}"
 
 
-async def _fetch_json(page, url: str):
-    """Fetch JSON via browser fetch() — returns None on error."""
+async def _fetch_json(page, url: str, timeout_ms: int = 20000):
+    """Fetch JSON via browser fetch() — returns None on error.
+
+    Bruger AbortController så kaldet aldrig hænger uendeligt, selv hvis den
+    eksterne tjeneste er langsom eller svarer ikke.
+    """
     return await page.evaluate(f"""
         async () => {{
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), {timeout_ms});
             try {{
-                const r = await fetch('{url}');
+                const r = await fetch('{url}', {{ signal: ctrl.signal }});
+                clearTimeout(timer);
                 if (!r.ok) return null;
                 return await r.json();
-            }} catch(e) {{ return null; }}
+            }} catch(e) {{
+                clearTimeout(timer);
+                return null;
+            }}
         }}
     """)
 
@@ -923,95 +933,124 @@ async def fetch_cvr_data(cvr: str) -> dict:
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(
-            user_agent=(
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/124.0.0.0 Safari/537.36"
-            ),
-            locale="da-DK",
-        )
-        page = await context.new_page()
+        try:
+            context = await browser.new_context(
+                user_agent=(
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/124.0.0.0 Safari/537.36"
+                ),
+                locale="da-DK",
+            )
+            page = await context.new_page()
 
-        # Visit homepage to get Cloudflare clearance cookies
-        await page.goto("https://datacvr.virk.dk/", wait_until="domcontentloaded", timeout=30000)
+            # Visit homepage to get Cloudflare clearance cookies
+            await page.goto("https://datacvr.virk.dk/", wait_until="domcontentloaded", timeout=30000)
 
-        # ── Main company data ──────────────────────────────────────────────
-        response = await _fetch_json(page, GATEWAY_URL.format(cvr=cvr_clean))
-        if not response:
-            await browser.close()
-            raise ValueError(f"Ingen data fundet for CVR {cvr_clean}")
+            # ── Main company data ──────────────────────────────────────────────
+            response = await _fetch_json(page, GATEWAY_URL.format(cvr=cvr_clean))
+            if not response:
+                raise ValueError(f"Ingen data fundet for CVR {cvr_clean}")
 
-        # ── Financial key figures ──────────────────────────────────────────
-        noegletal_data = await _fetch_json(page, NOEGLETAL_URL.format(cvr=cvr_clean))
+            # ── Financial key figures ──────────────────────────────────────────
+            noegletal_data = await _fetch_json(page, NOEGLETAL_URL.format(cvr=cvr_clean))
 
-        # ── Owner due diligence (selskaber) ──────────────────────────────
-        owner_risiko = []
-        ejere_raw = response.get("ejerforhold", {}).get("aktiveLegaleEjere", []) or []
-        for ejer in ejere_raw:
-            if ejer.get("enhedstype") == "VIRKSOMHED":
-                enhed_id = ejer.get("id", "")
-                if enhed_id:
-                    owner_cvr = await _resolve_owner_cvr(page, enhed_id)
-                    if owner_cvr:
-                        risiko = await _fetch_owner_risiko(page, owner_cvr)
-                        risiko["ejerandel"] = _find_ekstra(ejer, "ejerandel-procent-label")
-                        owner_risiko.append(risiko)
+            # ── Owner due diligence (selskaber) ──────────────────────────────
+            owner_risiko = []
+            ejere_raw = response.get("ejerforhold", {}).get("aktiveLegaleEjere", []) or []
+            for ejer in ejere_raw:
+                if ejer.get("enhedstype") == "VIRKSOMHED":
+                    enhed_id = ejer.get("id", "")
+                    if enhed_id:
+                        try:
+                            owner_cvr = await _resolve_owner_cvr(page, enhed_id)
+                            if owner_cvr:
+                                risiko = await _fetch_owner_risiko(page, owner_cvr)
+                                risiko["ejerandel"] = _find_ekstra(ejer, "ejerandel-procent-label")
+                                owner_risiko.append(risiko)
+                        except Exception:
+                            # Enkelt ejer-opslag må ikke crashe hele rapporten
+                            continue
 
-        # ── Person due diligence (direktører / personkreds) ──────────────
-        # Check each person's full company history for bankruptcies
-        person_risiko = []
-        personkreds = response.get("personkreds", {}) or {}
-        seen_person_ids = set()
-        for gruppe in personkreds.get("personkredser", []) or []:
-            for p in gruppe.get("personRoller", []) or []:
-                enhed_id = str(p.get("id", ""))
-                navn = p.get("senesteNavn", "")
-                # Only check actual persons (not companies) and avoid duplicates
-                if enhed_id and enhed_id not in seen_person_ids and p.get("enhedstype") != "VIRKSOMHED":
-                    seen_person_ids.add(enhed_id)
-                    pr = await _fetch_person_risiko(page, enhed_id, navn)
-                    person_risiko.append(pr)
+            # ── Person due diligence (direktører / personkreds) ──────────────
+            # Check each person's full company history for bankruptcies
+            person_risiko = []
+            personkreds = response.get("personkreds", {}) or {}
+            seen_person_ids = set()
+            for gruppe in personkreds.get("personkredser", []) or []:
+                for p in gruppe.get("personRoller", []) or []:
+                    enhed_id = str(p.get("id", ""))
+                    navn = p.get("senesteNavn", "")
+                    # Only check actual persons (not companies) and avoid duplicates
+                    if enhed_id and enhed_id not in seen_person_ids and p.get("enhedstype") != "VIRKSOMHED":
+                        seen_person_ids.add(enhed_id)
+                        try:
+                            pr = await _fetch_person_risiko(page, enhed_id, navn)
+                            person_risiko.append(pr)
+                        except Exception:
+                            person_risiko.append({"navn": navn, "enhed_id": enhed_id, "konkurser": [], "aktive_selskaber": []})
 
-        # ── Proff.dk financial summary ────────────────────────────────────
-        proff_data = await _fetch_proff_data(page, cvr_clean)
+            # ── Proff.dk financial summary ────────────────────────────────────
+            try:
+                proff_data = await _fetch_proff_data(page, cvr_clean)
+            except Exception:
+                proff_data = {}
 
-        # ── Trustpilot ───────────────────────────────────────────────────
-        stam = response.get("stamdata", {}) or {}
-        company_name = stam.get("navn", "")
-        website      = (stam.get("kontaktoplysninger", {}) or {}).get("hjemmeside", "")
-        city         = stam.get("postnummerOgBy", "")
-        trustpilot_data = await _fetch_trustpilot(page, company_name, website, city)
+            # ── Trustpilot ───────────────────────────────────────────────────
+            stam = response.get("stamdata", {}) or {}
+            company_name = stam.get("navn", "")
+            website      = (stam.get("kontaktoplysninger", {}) or {}).get("hjemmeside", "")
+            city         = stam.get("postnummerOgBy", "")
+            try:
+                trustpilot_data = await _fetch_trustpilot(page, company_name, website, city)
+            except Exception:
+                trustpilot_data = {}
 
-        # ── Feature 1: PEP & sanctions screening (OpenSanctions) ─────────
-        # Saml unikke navne på alle persons (ledelse + personejere)
-        alle_navne = []
-        personkreds2 = response.get("personkreds", {}) or {}
-        for gruppe in personkreds2.get("personkredser", []) or []:
-            for p in gruppe.get("personRoller", []) or []:
-                if p.get("enhedstype") != "VIRKSOMHED":
-                    n = p.get("senesteNavn", "")
+            # ── Feature 1: PEP & sanctions screening (OpenSanctions) ─────────
+            # Saml unikke navne på alle persons (ledelse + personejere)
+            alle_navne = []
+            personkreds2 = response.get("personkreds", {}) or {}
+            for gruppe in personkreds2.get("personkredser", []) or []:
+                for p in gruppe.get("personRoller", []) or []:
+                    if p.get("enhedstype") != "VIRKSOMHED":
+                        n = p.get("senesteNavn", "")
+                        if n and n not in alle_navne:
+                            alle_navne.append(n)
+            ejere_raw2 = (response.get("ejerforhold", {}) or {}).get("aktiveLegaleEjere", []) or []
+            for e in ejere_raw2:
+                if e.get("enhedstype") != "VIRKSOMHED":
+                    n = e.get("senesteNavn", "")
                     if n and n not in alle_navne:
                         alle_navne.append(n)
-        ejere_raw2 = (response.get("ejerforhold", {}) or {}).get("aktiveLegaleEjere", []) or []
-        for e in ejere_raw2:
-            if e.get("enhedstype") != "VIRKSOMHED":
-                n = e.get("senesteNavn", "")
-                if n and n not in alle_navne:
-                    alle_navne.append(n)
-        sanctions_data = await _fetch_sanctions(page, alle_navne[:10])  # max 10 navne
+            try:
+                sanctions_data = await _fetch_sanctions(page, alle_navne[:10])  # max 10 navne
+            except Exception:
+                sanctions_data = []
 
-        # ── Feature 2: Rekursiv koncernstruktur ───────────────────────────
-        visited_cvr = set()
-        koncern_data = await _build_koncern_node(page, cvr_clean, visited_cvr, depth=0)
+            # ── Feature 2: Rekursiv koncernstruktur ───────────────────────────
+            try:
+                visited_cvr = set()
+                koncern_data = await _build_koncern_node(page, cvr_clean, visited_cvr, depth=0)
+            except Exception:
+                koncern_data = {"cvr": cvr_clean, "navn": company_name, "ejere": []}
 
-        # ── Feature 3: Historiske ændringer (synkron parsing) ────────────
-        historik_data = _parse_historik(response)
+            # ── Feature 3: Historiske ændringer (synkron parsing) ────────────
+            try:
+                historik_data = _parse_historik(response)
+            except Exception:
+                historik_data = {"adresse_skift": [], "navn_skift": [], "direktor_skift": [], "status_skift": [], "roede_flag": []}
 
-        # ── Feature 4: Retssager & inkasso (Statstidende) ────────────────
-        retssager_data = await _fetch_retssager(page, cvr_clean, company_name)
-
-        await browser.close()
+            # ── Feature 4: Retssager & inkasso (Statstidende) ────────────────
+            try:
+                retssager_data = await _fetch_retssager(page, cvr_clean, company_name)
+            except Exception:
+                retssager_data = {"resultater": [], "risiko": "lav", "noter": []}
+        finally:
+            # Browser lukkes ALTID — også hvis der sker en fejl undervejs
+            try:
+                await browser.close()
+            except Exception:
+                pass
 
     return _normalize(
         response, cvr_clean, noegletal_data,

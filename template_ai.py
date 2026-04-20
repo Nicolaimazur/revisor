@@ -145,7 +145,13 @@ def _parse_json(text: str) -> dict:
     start = text.find("{")
     if start != -1:
         text = text[start:]
-    return json.loads(text)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"Kunne ikke forstå Claudes svar som JSON (position {e.pos}). "
+            "Prøv at uploade skabelonen igen."
+        )
 
 
 def _validate_xlsx_mapping(raw_mapping: dict, empty_cells: set) -> dict:

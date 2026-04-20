@@ -151,6 +151,16 @@ async def auth_check():
     return JSONResponse({"requires_password": bool(os.environ.get("ACCESS_PASSWORD", ""))})
 
 
+@app.get("/api/health")
+async def health():
+    """Simpel status-check — bruges af Railway + til at verificere at serveren kører."""
+    return JSONResponse({
+        "status": "ok",
+        "has_api_key": bool(os.environ.get("ANTHROPIC_API_KEY", "")),
+        "has_password": bool(os.environ.get("ACCESS_PASSWORD", "")),
+    })
+
+
 # ── Beskyttet: rapporter ──────────────────────────────────────────────────────
 
 class GenerateRequest(BaseModel):
@@ -164,14 +174,27 @@ async def generate(req: GenerateRequest):
         raise HTTPException(status_code=400, detail="CVR-nummer skal være 8 cifre.")
     try:
         cvr_data = await fetch_cvr_data(cvr)
+    except ValueError as e:
+        # ValueError = CVR ikke fundet (vi kastede den selv i cvr.py)
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=404, detail=f"CVR-opslag fejlede: {e}")
+        # Alt andet = teknisk fejl under CVR-opslag
+        raise HTTPException(
+            status_code=503,
+            detail=f"CVR-tjenesten svarer ikke lige nu. Prøv igen om et øjeblik. ({type(e).__name__})"
+        )
     try:
         report_data = await generate_report_data(cvr_data)
     except EnvironmentError as e:
         raise HTTPException(status_code=500, detail=str(e))
+    except RuntimeError as e:
+        # RuntimeError = vi har selv formateret en forståelig fejlbesked i report.py
+        raise HTTPException(status_code=503, detail=str(e))
+    except ValueError as e:
+        # ValueError = JSON-parse fejl eller afskåret svar
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Rapport-generering fejlede: {e}")
+        raise HTTPException(status_code=500, detail=f"Rapport-generering fejlede: {type(e).__name__}: {e}")
 
     # Inkluder rå CVR-data (koncernstruktur, historik, retssager, pep_screening)
     # så frontend kan rendere visuelt træ og supplere AI-sektionerne

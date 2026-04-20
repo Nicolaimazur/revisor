@@ -372,16 +372,27 @@ async def generate_report_data(cvr_data: dict) -> dict:
     )
 
     # Bruger streaming — påkrævet af Anthropic SDK for lange requests (>10 min)
-    with client.messages.stream(
-        model="claude-sonnet-4-6",
-        max_tokens=24000,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_prompt}],
-    ) as stream:
-        chunks = []
-        for text in stream.text_stream:
-            chunks.append(text)
-        message = stream.get_final_message()
+    # Hele kaldet er wrappet i try/except så Kurt får en forståelig besked
+    # hvis Anthropic API'et er nede eller svarer langsomt.
+    try:
+        with client.messages.stream(
+            model="claude-sonnet-4-6",
+            max_tokens=24000,
+            system=SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": user_prompt}],
+        ) as stream:
+            chunks = []
+            for text in stream.text_stream:
+                chunks.append(text)
+            message = stream.get_final_message()
+    except anthropic.APIConnectionError as e:
+        raise RuntimeError(f"Kunne ikke forbinde til Claude API. Tjek internetforbindelse. ({e})")
+    except anthropic.RateLimitError as e:
+        raise RuntimeError(f"Claude API er overbelastet lige nu. Prøv igen om 30 sekunder. ({e})")
+    except anthropic.APIStatusError as e:
+        raise RuntimeError(f"Claude API fejl (status {e.status_code}). Prøv igen. ({e.message})")
+    except Exception as e:
+        raise RuntimeError(f"Uventet fejl under rapport-generering: {e}")
 
     raw = "".join(chunks).strip()
 
@@ -400,7 +411,14 @@ async def generate_report_data(cvr_data: dict) -> dict:
             "Prøv igen."
         )
 
-    return json.loads(raw)
+    # Parse JSON med fallback-fejlmeddelelse hvis det er ugyldigt
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"Claude returnerede ugyldig JSON (position {e.pos}). "
+            "Dette sker sjældent — prøv at generere rapporten igen."
+        )
 
 
 def _danish_date() -> str:
