@@ -1180,29 +1180,62 @@ async function startGenerate() {
   resetSteps();
 
   try {
+    // Trin 1 — Start jobbet (returnerer straks et job_id)
     setStep(0, 'active');
-    await sleep(500);
-    setStep(0, 'done');
-    setStep(1, 'active');
-    await sleep(400);
-    setStep(1, 'done');
-    setStep(2, 'active');
-    await sleep(300);
-    setStep(2, 'done');
-    setStep(3, 'active');
-
-    const res = await _fetch('/api/generate', {
+    const startRes = await _fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ cvr }),
     });
+    if (!startRes.ok) {
+      const err = await startRes.json().catch(() => ({ detail: 'Ukendt fejl' }));
+      throw new Error(err.detail || `HTTP ${startRes.status}`);
+    }
+    const { job_id } = await startRes.json();
+    setStep(0, 'done');
+    setStep(1, 'active');
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Ukendt fejl' }));
-      throw new Error(err.detail || `HTTP ${res.status}`);
+    // Trin 2-3 — Poll hvert 3. sekund indtil færdig
+    let data = null;
+    let pollCount = 0;
+    const maxPolls = 120; // max 6 minutter (120 × 3s)
+
+    while (pollCount < maxPolls) {
+      await sleep(3000);
+      pollCount++;
+
+      const pollRes = await _fetch(`/api/jobs/${job_id}`);
+      if (!pollRes.ok) throw new Error(`Poll fejlede: HTTP ${pollRes.status}`);
+      const job = await pollRes.json();
+
+      // Opdater trin-tekst med hvad serveren laver
+      if (job.status === 'running') {
+        const trinTekst = job.trin || 'Arbejder...';
+        if (trinTekst.includes('CVR')) {
+          setStep(1, 'active');
+          setStep(2, 'pending');
+        } else if (trinTekst.includes('AI') || trinTekst.includes('rapport')) {
+          setStep(1, 'done');
+          setStep(2, 'active');
+        }
+      }
+
+      if (job.status === 'done') {
+        data = job.result;
+        break;
+      }
+
+      if (job.status === 'error') {
+        throw new Error(job.error || 'Ukendt fejl under generering');
+      }
     }
 
-    const data = await res.json();
+    if (!data) throw new Error('Rapport-generering tog for lang tid. Prøv igen.');
+
+    setStep(1, 'done');
+    setStep(2, 'done');
+    setStep(3, 'active');
+    await sleep(400);
     setStep(3, 'done');
 
     state.currentReport = data;
