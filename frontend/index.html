@@ -1,0 +1,2579 @@
+<!DOCTYPE html>
+<html class="light" lang="da">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ARCHITECT — Due Diligence Platform</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary-container": "#d7e3f7",
+          "secondary-container": "#cbe7f5",
+          "on-tertiary-container": "#474d67",
+          "inverse-primary": "#d7e3f7",
+          "secondary": "#49636f",
+          "on-secondary": "#f2faff",
+          "surface-container-highest": "#dbe4e7",
+          "on-primary-fixed": "#34404f",
+          "tertiary-fixed": "#d5dcfb",
+          "surface-container-low": "#f1f4f6",
+          "tertiary-dim": "#4b526c",
+          "on-primary-fixed-variant": "#505c6c",
+          "on-tertiary": "#faf8ff",
+          "outline": "#737c7f",
+          "on-tertiary-fixed": "#343b53",
+          "surface-container-lowest": "#ffffff",
+          "primary-dim": "#475363",
+          "surface-bright": "#f8f9fa",
+          "surface-variant": "#dbe4e7",
+          "tertiary": "#575e78",
+          "on-secondary-fixed-variant": "#455f6b",
+          "primary": "#535f6f",
+          "error-container": "#fe8983",
+          "on-tertiary-fixed-variant": "#505771",
+          "outline-variant": "#abb3b7",
+          "tertiary-container": "#d5dcfb",
+          "background": "#f8f9fa",
+          "on-primary-container": "#475362",
+          "inverse-on-surface": "#9b9d9e",
+          "secondary-fixed": "#cbe7f5",
+          "on-surface": "#2b3437",
+          "on-primary": "#f5f8ff",
+          "surface-container-high": "#e3e9ec",
+          "primary-fixed-dim": "#c9d5e8",
+          "on-secondary-fixed": "#29434e",
+          "secondary-dim": "#3d5762",
+          "primary-fixed": "#d7e3f7",
+          "secondary-fixed-dim": "#bdd9e6",
+          "error-dim": "#4e0309",
+          "surface-dim": "#d1dce0",
+          "on-secondary-container": "#3c5561",
+          "surface": "#f8f9fa",
+          "inverse-surface": "#0c0f10",
+          "on-error-container": "#752121",
+          "error": "#9f403d",
+          "on-error": "#fff7f6",
+          "tertiary-fixed-dim": "#c7ceec",
+          "surface-tint": "#535f6f",
+          "on-surface-variant": "#586064",
+          "on-background": "#2b3437",
+          "surface-container": "#eaeff1"
+        },
+        borderRadius: {
+          DEFAULT: "0.125rem",
+          lg: "0.25rem",
+          xl: "0.5rem",
+          full: "0.75rem"
+        },
+        fontFamily: {
+          headline: ["Manrope"],
+          body: ["Inter"],
+          label: ["Inter"]
+        }
+      }
+    }
+  }
+</script>
+<style>
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #2b3437; min-height: max(884px, 100dvh); }
+  h1, h2, h3, h4 { font-family: 'Manrope', sans-serif; }
+  .view { display: none; }
+  .view.active { display: block; }
+  .nav-item.active { color: #2C3E50 !important; font-weight: 700; border-left: 4px solid #535f6f; padding-left: 1rem; }
+  .nav-item.active .nav-label { font-weight: 700; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { animation: spin 0.9s linear infinite; }
+  @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .pulse { animation: pulse-dot 1.4s ease-in-out infinite; }
+  html { scroll-behavior: smooth; }
+
+  /* Report viewer layout */
+  #view-report { display: none; }
+  #view-report.active { display: flex; flex-direction: column; height: calc(100vh - 57px); overflow: hidden; }
+  .report-layout { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+  .report-sidenav { width: 220px; flex-shrink: 0; overflow-y: auto; border-right: 1px solid rgba(171,179,183,0.15); padding: 1.5rem 0; }
+  .report-content { flex: 1; overflow-y: auto; padding: 2.5rem 3rem; }
+  @media (max-width: 768px) {
+    #view-report.active { display: flex; height: auto; overflow: visible; }
+    .report-layout { flex-direction: column; overflow: visible; }
+    .report-sidenav { width: 100%; overflow: hidden; border-right: none; border-bottom: 1px solid rgba(171,179,183,0.15); padding: 1rem 1.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .report-content { overflow: visible; padding: 1.5rem; }
+  }
+
+  /* Report section nav item */
+  .report-nav-item { display: flex; align-items: center; gap: 0.625rem; padding: 0.5rem 1.25rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #586064; cursor: pointer; transition: all 0.15s; white-space: nowrap; border-left: 3px solid transparent; }
+  .report-nav-item:hover { background: #f1f4f6; color: #2b3437; }
+  .report-nav-item.active-section { background: #f1f4f6; color: #535f6f; border-left-color: #535f6f; font-weight: 800; }
+  .report-nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Section anchor scroll offset */
+  .report-section { scroll-margin-top: 2rem; margin-bottom: 3rem; }
+
+  /* Koncerntræ */
+  #rv-koncern-tree { padding: 1rem 0.5rem; }
+  #rv-koncern-tree .tree-node-wrap { display: flex; flex-direction: column; align-items: center; }
+
+  /* Zebra table */
+  .zebra-table tr:nth-child(even) td { background: #f1f4f6; }
+
+  /* Section header bar */
+  .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
+  .section-header-bar { width: 4px; height: 28px; border-radius: 2px; flex-shrink: 0; }
+  .section-header-label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: #586064; }
+  .section-header-title { font-family: 'Manrope', sans-serif; font-size: 1.35rem; font-weight: 800; color: #2b3437; line-height: 1.2; }
+</style>
+</head>
+<body class="bg-background text-on-surface">
+
+<!-- ── LOGIN ─────────────────────────────────────────────────────────────── -->
+<div id="view-login" class="hidden fixed inset-0 z-[100] flex items-center justify-center" style="background: linear-gradient(135deg, #1a2332 0%, #2b3437 100%)">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-8">
+    <div class="mb-8 text-center">
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#2b3437] mb-4">
+        <span class="material-symbols-outlined text-white text-2xl">shield</span>
+      </div>
+      <h1 class="font-headline font-extrabold text-2xl tracking-tight text-on-surface">RegnskabsRisk</h1>
+      <p class="text-sm text-on-surface-variant mt-1">Due Diligence Platform</p>
+    </div>
+    <div id="login-error" class="hidden mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"></div>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-on-surface-variant mb-1.5 uppercase tracking-wide">Adgangskode</label>
+        <input id="login-password" type="password" placeholder="Indtast kodeord"
+          class="w-full px-4 py-3 rounded-xl border border-outline-variant/30 bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
+          onkeydown="if(event.key==='Enter') submitLogin()">
+      </div>
+      <button onclick="submitLogin()" id="login-btn"
+        class="w-full py-3 bg-primary text-on-primary rounded-xl font-semibold text-sm hover:opacity-90 active:scale-[.98] transition-all">
+        Log ind
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="main-layout" class="hidden">
+
+<!-- ── Sidebar ─────────────────────────────────────────────────────────────── -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-[#f1f4f6] flex flex-col py-10 px-6 z-40 hidden md:flex">
+  <div class="font-['Manrope'] font-black text-2xl text-[#2C3E50] mb-10 tracking-tighter">ARCHITECT</div>
+  <nav class="space-y-1" id="sidebar-nav">
+    <button onclick="navigate('dashboard')" data-view="dashboard" class="nav-item w-full flex items-center gap-3 py-3 px-5 text-[#535f6f]/70 hover:bg-[#eaeff1] transition-all duration-200 rounded-lg font-['Inter'] font-medium text-sm tracking-wide">
+      <span class="material-symbols-outlined text-xl">dashboard</span>
+      <span class="nav-label">Intelligence</span>
+    </button>
+    <button onclick="navigate('search')" data-view="search" class="nav-item w-full flex items-center gap-3 py-3 px-5 text-[#535f6f]/70 hover:bg-[#eaeff1] transition-all duration-200 rounded-lg font-['Inter'] font-medium text-sm tracking-wide">
+      <span class="material-symbols-outlined text-xl">factory</span>
+      <span class="nav-label">Søg Virksomhed</span>
+    </button>
+    <button onclick="navigate('reports')" data-view="reports" class="nav-item w-full flex items-center gap-3 py-3 px-5 text-[#535f6f]/70 hover:bg-[#eaeff1] transition-all duration-200 rounded-lg font-['Inter'] font-medium text-sm tracking-wide">
+      <span class="material-symbols-outlined text-xl">analytics</span>
+      <span class="nav-label">Risk Reports</span>
+    </button>
+    <button onclick="navigate('report')" data-view="report" class="nav-item w-full flex items-center gap-3 py-3 px-5 text-[#535f6f]/70 hover:bg-[#eaeff1] transition-all duration-200 rounded-lg font-['Inter'] font-medium text-sm tracking-wide">
+      <span class="material-symbols-outlined text-xl">description</span>
+      <span class="nav-label">Rapport</span>
+    </button>
+    <button onclick="navigate('settings')" data-view="settings" class="nav-item w-full flex items-center gap-3 py-3 px-5 text-[#535f6f]/70 hover:bg-[#eaeff1] transition-all duration-200 rounded-lg font-['Inter'] font-medium text-sm tracking-wide">
+      <span class="material-symbols-outlined text-xl">settings_account_box</span>
+      <span class="nav-label">Indstillinger</span>
+    </button>
+  </nav>
+  <button onclick="_logout()" class="w-full flex items-center gap-3 py-3 px-5 text-[#535f6f]/50 hover:bg-[#eaeff1] transition-all duration-200 rounded-lg font-['Inter'] font-medium text-sm tracking-wide mt-auto">
+    <span class="material-symbols-outlined text-xl">logout</span>
+    <span class="nav-label">Log ud</span>
+  </button>
+</aside>
+
+<!-- ── Main ────────────────────────────────────────────────────────────────── -->
+<main class="md:ml-64 min-h-screen pb-24 md:pb-0">
+
+  <!-- Top bar -->
+  <header class="w-full sticky top-0 z-50 bg-[#f8f9fa] flex justify-between items-center px-8 py-4">
+    <h1 class="font-['Manrope'] font-bold text-lg tracking-tight text-[#535f6f]" id="topbar-title">The Precision Sanctuary</h1>
+    <div class="flex items-center gap-4">
+      <button onclick="navigate('search')" class="cursor-pointer active:opacity-70 transition-opacity">
+        <span class="material-symbols-outlined text-[#535f6f]">search</span>
+      </button>
+      <div class="w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center text-primary font-bold text-sm">NM</div>
+    </div>
+  </header>
+  <div class="bg-[#eaeff1] h-px w-full"></div>
+
+  <!-- ══ VIEW: Dashboard ════════════════════════════════════════════════════ -->
+  <div id="view-dashboard" class="view active px-8 py-12 max-w-7xl mx-auto">
+    <div class="mb-14 flex flex-col md:flex-row md:items-end gap-4">
+      <div class="max-w-xl">
+        <h2 class="text-5xl font-extrabold font-headline tracking-tighter text-on-surface mb-3">Dashboard</h2>
+        <p class="text-on-surface-variant leading-relaxed">Strukturel integritetsoversigt for virksomheder. Dit risikobillede på ét blik.</p>
+      </div>
+    </div>
+
+    <!-- Stats bento -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-14">
+      <div class="bg-surface-container-lowest p-10 rounded-xl flex flex-col justify-between h-44 border border-outline-variant/5 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.04)]">
+        <div class="flex justify-between items-start">
+          <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Rapporter i alt</span>
+          <span class="material-symbols-outlined text-primary">grid_view</span>
+        </div>
+        <div class="text-4xl font-headline font-bold text-on-surface" id="stat-total">—</div>
+      </div>
+      <div class="bg-surface-container-lowest p-10 rounded-xl flex flex-col justify-between h-44 border border-outline-variant/5 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.04)]">
+        <div class="flex justify-between items-start">
+          <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Denne måned</span>
+          <span class="material-symbols-outlined text-secondary">calendar_month</span>
+        </div>
+        <div class="text-4xl font-headline font-bold text-on-surface" id="stat-month">—</div>
+      </div>
+      <div class="bg-surface-container-lowest p-10 rounded-xl flex flex-col justify-between h-44 border border-outline-variant/5 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.04)]">
+        <div class="flex justify-between items-start">
+          <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Høj risiko</span>
+          <span class="material-symbols-outlined text-error">warning</span>
+        </div>
+        <div class="text-4xl font-headline font-bold text-error" id="stat-highrisk">—</div>
+      </div>
+    </div>
+
+    <!-- Recent reports table -->
+    <div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)]">
+      <div class="px-10 py-7 flex justify-between items-center" style="border-bottom: 1px solid #f1f4f6">
+        <h3 class="text-2xl font-headline font-bold text-on-surface">Seneste Rapporter</h3>
+        <button onclick="navigate('search')" class="text-primary font-bold text-sm hover:underline">+ Ny rapport</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="bg-surface-container-low text-left">
+              <th class="px-10 py-5 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Virksomhed</th>
+              <th class="px-10 py-5 text-xs font-bold uppercase tracking-widest text-on-surface-variant">CVR</th>
+              <th class="px-10 py-5 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Dato</th>
+              <th class="px-10 py-5 text-xs font-bold uppercase tracking-widest text-on-surface-variant text-right">Risiko</th>
+            </tr>
+          </thead>
+          <tbody id="recent-table" class="divide-y divide-surface-container-low">
+            <tr>
+              <td colspan="4" class="px-10 py-12 text-center text-on-surface-variant">
+                <span class="material-symbols-outlined text-4xl block mb-3 opacity-30">description</span>
+                Ingen rapporter endnu — <button onclick="navigate('search')" class="text-primary font-semibold hover:underline">generer din første</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ VIEW: Search ═══════════════════════════════════════════════════════ -->
+  <div id="view-search" class="view px-8 py-16 max-w-5xl mx-auto">
+    <div class="mb-12">
+      <h2 class="text-5xl font-extrabold font-headline tracking-tighter text-on-surface mb-3">Søg Virksomhed</h2>
+      <p class="text-on-surface-variant text-lg max-w-xl leading-relaxed">Indtast CVR-nummer for at generere en komplet Kunde Due Diligence rapport til revisor onboarding.</p>
+    </div>
+
+    <!-- Search box -->
+    <div class="relative mb-20">
+      <div id="search-box" class="bg-surface-container-lowest rounded-xl shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] p-2 flex items-center gap-4 transition-all focus-within:ring-2 focus-within:ring-primary/20">
+        <div class="pl-6 text-primary">
+          <span class="material-symbols-outlined text-3xl">search</span>
+        </div>
+        <input
+          id="cvr-input"
+          type="text"
+          maxlength="8"
+          placeholder="CVR-nummer (8 cifre)..."
+          class="w-full bg-transparent border-none focus:ring-0 py-6 text-xl font-body text-on-surface placeholder:text-outline-variant/60 outline-none"
+        />
+        <button id="search-btn" onclick="startGenerate()" class="bg-primary hover:bg-primary-dim text-on-primary px-8 py-4 rounded-lg font-headline font-bold transition-colors mr-2 flex items-center gap-2">
+          <span id="search-btn-text">SØG</span>
+        </button>
+      </div>
+
+      <!-- Error msg -->
+      <div id="search-error" class="hidden mt-4 px-6 py-3 bg-error-container/20 rounded-lg text-on-error-container text-sm font-medium flex items-center gap-2">
+        <span class="material-symbols-outlined text-base">error</span>
+        <span id="search-error-text"></span>
+      </div>
+
+    </div>
+
+    <!-- Progress steps (shown while generating) -->
+    <div id="progress-panel" class="hidden">
+      <div class="bg-surface-container-lowest rounded-xl p-10 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] max-w-xl">
+        <h3 class="text-xl font-headline font-bold mb-8 text-on-surface">Udarbejder rapport…</h3>
+        <div class="space-y-5" id="progress-steps">
+          <div class="progress-step flex items-center gap-4" data-step="0">
+            <div class="step-icon w-7 h-7 rounded-full border-2 border-outline-variant/40 flex items-center justify-center flex-shrink-0"></div>
+            <span class="text-sm text-on-surface-variant">Henter CVR-data fra Erhvervsstyrelsen</span>
+          </div>
+          <div class="progress-step flex items-center gap-4" data-step="1">
+            <div class="step-icon w-7 h-7 rounded-full border-2 border-outline-variant/40 flex items-center justify-center flex-shrink-0"></div>
+            <span class="text-sm text-on-surface-variant">Analyserer selskabsstruktur og ledelse</span>
+          </div>
+          <div class="progress-step flex items-center gap-4" data-step="2">
+            <div class="step-icon w-7 h-7 rounded-full border-2 border-outline-variant/40 flex items-center justify-center flex-shrink-0"></div>
+            <span class="text-sm text-on-surface-variant">Genererer finansiel analyse og risikovurdering</span>
+          </div>
+          <div class="progress-step flex items-center gap-4" data-step="3">
+            <div class="step-icon w-7 h-7 rounded-full border-2 border-outline-variant/40 flex items-center justify-center flex-shrink-0"></div>
+            <span class="text-sm text-on-surface-variant">Sammensætter rapport</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Suggested companies -->
+    <div id="suggested-panel">
+      <div class="grid grid-cols-1 gap-8">
+        <div class="space-y-8">
+          <div>
+            <h3 class="text-xl font-headline font-bold text-on-surface mb-6">Seneste opslag</h3>
+            <div class="bg-surface-container-low rounded-xl p-6">
+              <ul id="recent-lookups" class="space-y-5">
+                <li class="text-sm text-on-surface-variant italic">Ingen opslag endnu</li>
+              </ul>
+            </div>
+          </div>
+          <div class="relative group overflow-hidden rounded-xl bg-primary aspect-[4/3] flex flex-col justify-end p-6 text-on-primary">
+            <div class="relative z-10">
+              <span class="text-[10px] font-bold uppercase tracking-widest opacity-70">AML Compliance</span>
+              <h4 class="text-xl font-headline font-bold mt-2 leading-tight">Dokumentér din onboarding-proces</h4>
+              <p class="text-sm opacity-80 mt-2">Hvidvaskloven § 11 kræver dokumenteret KDD ved ny kunde.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ VIEW: Reports ══════════════════════════════════════════════════════ -->
+  <div id="view-reports" class="view px-8 pt-8 max-w-6xl mx-auto pb-16">
+
+    <!-- No reports state -->
+    <div id="no-reports-state">
+      <div class="mb-12">
+        <span class="text-secondary font-semibold tracking-widest text-xs uppercase mb-2 block">Risk Reports</span>
+        <h2 class="text-5xl font-extrabold font-headline tracking-tighter text-on-surface mb-4">Ingen rapport klar</h2>
+        <p class="text-on-surface-variant text-lg max-w-xl leading-relaxed">Generer en rapport fra søgesiden for at se den her.</p>
+      </div>
+      <button onclick="navigate('search')" class="px-6 py-3 bg-primary text-on-primary rounded-md font-semibold text-sm hover:opacity-90 transition-all flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">add</span> Generer ny rapport
+      </button>
+    </div>
+
+    <!-- Report result state -->
+    <div id="report-result-state" class="hidden">
+      <section class="mb-12">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div class="max-w-2xl">
+            <span class="text-secondary font-semibold tracking-widest text-xs uppercase mb-2 block">Due Diligence Rapport</span>
+            <h2 class="text-4xl md:text-5xl font-extrabold font-headline tracking-tighter text-on-surface mb-4" id="report-company-name">—</h2>
+            <p class="text-on-surface-variant text-lg max-w-xl leading-relaxed" id="report-meta-text">—</p>
+          </div>
+          <div class="flex gap-3 flex-shrink-0">
+            <button onclick="downloadPDF()" class="px-6 py-3 bg-primary text-on-primary rounded-md font-semibold text-sm hover:opacity-90 transition-all flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">download</span> Download PDF
+            </button>
+            <button onclick="downloadKTV()" class="px-6 py-3 border border-primary/30 text-primary rounded-md font-semibold text-sm hover:bg-primary-container/20 transition-all flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">article</span> KTV-beskrivelse
+            </button>
+            <button id="excel-btn-top" onclick="openExcelPreview()" class="hidden px-6 py-3 border border-green-600/40 text-green-700 rounded-md font-semibold text-sm hover:bg-green-50 transition-all flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">table_view</span> Download Excel
+            </button>
+            <button onclick="navigate('search')" class="px-6 py-3 border text-primary rounded-md font-semibold text-sm hover:bg-surface-container-low transition-all" style="border-color: rgba(171,179,183,0.2)">
+              Ny rapport
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Bento metrics -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-12">
+        <!-- Risk score -->
+        <div class="md:col-span-4 bg-surface-container-lowest p-8 rounded-xl flex flex-col justify-between relative overflow-hidden group shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)]">
+          <div class="relative z-10">
+            <h3 class="text-xs font-bold text-secondary uppercase tracking-widest mb-8">Samlet Risiko</h3>
+            <div class="flex items-baseline gap-2">
+              <span id="risk-score" class="text-6xl font-extrabold text-primary font-headline tracking-tighter">—</span>
+            </div>
+            <div class="mt-3 flex items-center gap-2 font-bold text-sm" id="risk-label-row">
+              <span class="material-symbols-outlined text-sm">shield</span>
+              <span id="risk-label">—</span>
+            </div>
+          </div>
+          <div class="mt-8 relative z-10">
+            <p class="text-xs text-on-surface-variant leading-relaxed">Baseret på CVR-data, UBO-registrering, finansielle nøgletal og nyhedssøgning.</p>
+          </div>
+          <div class="absolute -right-10 -bottom-10 w-44 h-44 bg-primary-container/20 rounded-full blur-3xl group-hover:bg-primary-container/40 transition-colors duration-500"></div>
+        </div>
+
+        <!-- Risk indicators grid -->
+        <div class="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-5" id="risk-cards">
+        </div>
+      </div>
+
+      <!-- Historical reports table -->
+      <div>
+        <div class="flex items-center gap-4 mb-8">
+          <h3 class="text-2xl font-headline font-bold tracking-tight whitespace-nowrap">Alle Rapporter</h3>
+          <div class="h-px flex-grow bg-outline-variant/20"></div>
+        </div>
+        <div class="bg-surface-container-low rounded-2xl overflow-hidden p-1">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-separate border-spacing-y-2">
+              <thead>
+                <tr>
+                  <th class="py-5 px-6 text-xs font-bold uppercase tracking-widest text-on-surface-variant rounded-l-xl">Virksomhed</th>
+                  <th class="py-5 px-6 text-xs font-bold uppercase tracking-widest text-on-surface-variant">CVR</th>
+                  <th class="py-5 px-6 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Dato</th>
+                  <th class="py-5 px-6 text-xs font-bold uppercase tracking-widest text-on-surface-variant rounded-r-xl">Risiko</th>
+                </tr>
+              </thead>
+              <tbody id="reports-history-table">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ VIEW: Report (full viewer) ════════════════════════════════════════ -->
+  <div id="view-report" class="view">
+
+    <!-- Empty state (no report loaded) -->
+    <div id="report-empty-state" class="px-8 py-20 max-w-2xl mx-auto text-center">
+      <div class="w-20 h-20 rounded-2xl bg-surface-container-low flex items-center justify-center mx-auto mb-6">
+        <span class="material-symbols-outlined text-4xl text-outline-variant">description</span>
+      </div>
+      <h2 class="text-3xl font-extrabold font-headline tracking-tighter text-on-surface mb-3">Ingen rapport åben</h2>
+      <p class="text-on-surface-variant leading-relaxed mb-8">Generer en due diligence rapport for at se den her. Rapporten vises med komplet sektionsoversigt, finansielle data, og risikovurdering.</p>
+      <button onclick="navigate('search')" class="px-6 py-3 bg-primary text-on-primary rounded-lg font-semibold text-sm hover:opacity-90 transition-all inline-flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">add</span> Generer rapport
+      </button>
+    </div>
+
+    <!-- Report loaded state -->
+    <div id="report-loaded-state" class="hidden flex flex-col" style="height:calc(100vh - 57px)">
+
+      <!-- Sticky report header -->
+      <div class="bg-surface-container-lowest border-b border-outline-variant/10 px-8 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 shadow-[0_4px_24px_-4px_rgba(43,52,55,0.06)]">
+        <div class="min-w-0">
+          <div class="flex items-center gap-3 flex-wrap">
+            <h2 class="text-2xl font-extrabold font-headline tracking-tighter text-on-surface truncate" id="rv-company-name">—</h2>
+            <span id="rv-risk-badge" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border">—</span>
+          </div>
+          <p class="text-xs text-on-surface-variant mt-1" id="rv-meta">—</p>
+        </div>
+        <div class="flex gap-2 flex-shrink-0">
+          <button onclick="downloadPDF()" class="px-5 py-2.5 bg-primary text-on-primary rounded-lg font-semibold text-sm hover:opacity-90 transition-all flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">download</span> Download PDF
+          </button>
+          <button onclick="downloadKTV()" class="px-5 py-2.5 border border-primary/30 text-primary rounded-lg font-semibold text-sm hover:bg-primary-container/20 transition-all flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">article</span> KTV-beskrivelse
+          </button>
+          <button id="excel-btn-bottom" onclick="openExcelPreview()" class="hidden px-5 py-2.5 border border-green-600/40 text-green-700 rounded-lg font-semibold text-sm hover:bg-green-50 transition-all flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">table_view</span> Download Excel
+          </button>
+          <button onclick="navigate('search')" class="px-5 py-2.5 border border-outline-variant/30 text-primary rounded-lg font-semibold text-sm hover:bg-surface-container-low transition-all flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">add</span> Ny rapport
+          </button>
+        </div>
+      </div>
+
+      <!-- Two-column layout: sidenav + scrollable content -->
+      <div class="report-layout flex-1">
+
+        <!-- Section sidenav -->
+        <div class="report-sidenav bg-[#f8f9fa] hidden md:block" id="report-sidenav">
+          <div class="report-nav-item active-section" onclick="scrollToSection('s01')">
+            <span class="report-nav-dot bg-gray-400" id="dot-s01"></span>01 CVR-DATA
+          </div>
+          <div class="report-nav-item" onclick="scrollToSection('s02')">
+            <span class="report-nav-dot bg-gray-400" id="dot-s02"></span>02 LEDELSE &amp; EJERE
+          </div>
+          <div class="report-nav-item" onclick="scrollToSection('s03')">
+            <span class="report-nav-dot bg-gray-400" id="dot-s03"></span>03 STRUKTUR
+          </div>
+          <div class="report-nav-item" onclick="scrollToSection('s10')">
+            <span class="report-nav-dot bg-gray-400" id="dot-s10"></span>10 HISTORIK
+          </div>
+          <div class="report-nav-item" onclick="scrollToSection('s11')">
+            <span class="report-nav-dot bg-gray-400" id="dot-s11"></span>11 RETSSAGER
+          </div>
+          <div class="report-nav-item" onclick="scrollToSection('s04')">
+            <span class="report-nav-dot bg-gray-400" id="dot-s04"></span>04 REGNSKAB
+          </div>
+          <div class="report-nav-item" onclick="scrollToSection('s05')">
+            <span class="report-nav-dot bg-gray-400" id="dot-s05"></span>05 KREDITVURDERING
+          </div>
+          <div class="report-nav-item" onclick="scrollToSection('s06')">
+            <span class="report-nav-dot bg-gray-400" id="dot-s06"></span>06 NYHEDER
+          </div>
+          <div class="report-nav-item" onclick="scrollToSection('s07')">
+            <span class="report-nav-dot bg-gray-400" id="dot-s07"></span>07 BRANCHE
+          </div>
+          <div class="report-nav-item" onclick="scrollToSection('s08')">
+            <span class="report-nav-dot bg-gray-400" id="dot-s08"></span>08 LEDELSESPROFILER
+          </div>
+          <div class="report-nav-item" onclick="scrollToSection('s09')">
+            <span class="report-nav-dot bg-gray-400" id="dot-s09"></span>09 VURDERING
+          </div>
+        </div>
+
+        <!-- Main scrollable content -->
+        <div class="report-content" id="report-scroll-area">
+
+          <!-- Risk overview cards -->
+          <div class="mb-10">
+            <div class="section-header mb-5">
+              <div class="section-header-bar bg-primary"></div>
+              <div>
+                <div class="section-header-label">Risikoindikator oversigt</div>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="rv-risk-overview"></div>
+          </div>
+
+          <!-- Section 01 -->
+          <div id="anchor-s01" class="report-section">
+            <div class="section-header">
+              <div class="section-header-bar bg-blue-400"></div>
+              <div>
+                <div class="section-header-label">Sektion 01</div>
+                <div class="section-header-title">CVR-Data</div>
+              </div>
+            </div>
+            <div class="bg-surface-container-lowest rounded-xl p-6 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] border border-outline-variant/10">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-0 mb-6" id="rv-s01-kv"></div>
+              <div id="rv-s01-desc-wrap" class="hidden">
+                <div class="bg-blue-50/60 border-l-4 border-blue-300/60 rounded-r-xl p-5 mt-4">
+                  <p class="text-sm text-on-surface leading-relaxed" id="rv-s01-desc"></p>
+                </div>
+              </div>
+              <div id="rv-s01-kontorer-wrap" class="hidden mt-4">
+                <div class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Kontorer</div>
+                <div class="flex flex-wrap gap-3" id="rv-s01-kontorer"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 02 -->
+          <div id="anchor-s02" class="report-section">
+            <div class="section-header">
+              <div class="section-header-bar bg-indigo-400"></div>
+              <div>
+                <div class="section-header-label">Sektion 02</div>
+                <div class="section-header-title">Ledelse &amp; Ejere</div>
+              </div>
+            </div>
+            <div class="space-y-6">
+
+              <!-- Direktion -->
+              <div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] border border-outline-variant/10">
+                <div class="px-6 py-4 bg-surface-container-low">
+                  <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Direktion</span>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm" id="rv-direktion">
+                    <thead><tr class="text-left"><th class="px-6 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Navn</th><th class="px-6 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Rolle</th><th class="px-6 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Tilknyttet</th><th class="px-6 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Bemærkning</th></tr></thead>
+                    <tbody class="zebra-table divide-y divide-surface-container-low"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Reelle ejere -->
+              <div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] border border-outline-variant/10">
+                <div class="px-6 py-4 bg-surface-container-low">
+                  <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Reelle Ejere</span>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm" id="rv-ejere">
+                    <thead><tr class="text-left"><th class="px-6 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Navn</th><th class="px-6 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Ejerandel</th><th class="px-6 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Stemmeandel</th><th class="px-6 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Besiddelse</th><th class="px-6 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Dato</th></tr></thead>
+                    <tbody class="zebra-table divide-y divide-surface-container-low"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- UBO note -->
+              <div id="rv-ubo-note-wrap" class="hidden">
+                <div class="bg-primary-container/10 border-l-4 border-primary/30 rounded-r-xl p-5">
+                  <div class="text-xs font-bold uppercase tracking-widest text-primary mb-2">UBO Notat</div>
+                  <p class="text-sm text-on-surface leading-relaxed" id="rv-ubo-note"></p>
+                </div>
+              </div>
+
+              <!-- PEP screening (OpenSanctions) -->
+              <div id="rv-pep-screening-wrap" class="hidden">
+                <div class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">PEP &amp; Sanktionsliste-screening</div>
+                <div class="space-y-3" id="rv-pep-screening-list"></div>
+                <p class="text-xs text-on-surface-variant/60 mt-2">Kilde: OpenSanctions.org (EU, OFAC, UN, HMT sanktionslister + PEP-databaser)</p>
+              </div>
+              <!-- PEP screening note (fallback) -->
+              <div id="rv-pep-note-wrap" class="hidden">
+                <div class="bg-orange-50/60 border-l-4 border-orange-300/60 rounded-r-xl p-5">
+                  <div class="text-xs font-bold uppercase tracking-widest text-orange-700 mb-2">PEP Screening</div>
+                  <p class="text-sm text-on-surface leading-relaxed" id="rv-pep-note"></p>
+                </div>
+              </div>
+
+              <!-- Person Due Diligence -->
+              <div id="rv-person-dd-wrap">
+                <div class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Person Due Diligence</div>
+                <div class="space-y-4" id="rv-person-dd"></div>
+              </div>
+
+              <!-- Ejer-selskaber Due Diligence -->
+              <div id="rv-ejerselskaber-wrap">
+                <div class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Ejer-selskaber Due Diligence</div>
+                <div class="space-y-4" id="rv-ejerselskaber"></div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Section 03 -->
+          <div id="anchor-s03" class="report-section">
+            <div class="section-header">
+              <div class="section-header-bar bg-teal-400"></div>
+              <div>
+                <div class="section-header-label">Sektion 03</div>
+                <div class="section-header-title">Koncernstruktur</div>
+              </div>
+            </div>
+            <div class="bg-surface-container-lowest rounded-xl p-6 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] border border-outline-variant/10 space-y-5">
+              <div id="rv-s03-desc-wrap" class="hidden">
+                <p class="text-sm text-on-surface leading-relaxed" id="rv-s03-desc"></p>
+              </div>
+              <!-- Visuelt ejerskabstræ -->
+              <div id="rv-koncern-tree-wrap" class="hidden">
+                <div class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Ejerskabstræ</div>
+                <div id="rv-koncern-tree" class="overflow-x-auto"></div>
+              </div>
+              <!-- Tabel-fallback / AI-genereret koncernkort -->
+              <div id="rv-koncernkort-wrap" class="hidden">
+                <div class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Koncernkort</div>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead><tr class="bg-surface-container-low text-left">
+                      <th class="px-4 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Niveau</th>
+                      <th class="px-4 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Enhed</th>
+                      <th class="px-4 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Type</th>
+                      <th class="px-4 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Ejerandel</th>
+                      <th class="px-4 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Status</th>
+                      <th class="px-4 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Bemærkning</th>
+                    </tr></thead>
+                    <tbody class="zebra-table divide-y divide-surface-container-low" id="rv-koncernkort"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="rv-s03-revisor-wrap" class="hidden">
+                <div class="bg-primary-container/10 border-l-4 border-primary/30 rounded-r-xl p-5">
+                  <div class="text-xs font-bold uppercase tracking-widest text-primary mb-2">Revisor Anbefaling</div>
+                  <p class="text-sm text-on-surface leading-relaxed" id="rv-s03-revisor"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 10: Historiske ændringer -->
+          <div id="anchor-s10" class="report-section">
+            <div class="section-header">
+              <div class="section-header-bar bg-orange-400"></div>
+              <div>
+                <div class="section-header-label">Sektion 10</div>
+                <div class="section-header-title">Historiske Ændringer</div>
+              </div>
+            </div>
+            <div class="space-y-4">
+              <!-- Røde flag -->
+              <div id="rv-historik-flag-wrap" class="hidden">
+                <div class="bg-red-50/60 border-l-4 border-red-400/60 rounded-r-xl p-5">
+                  <div class="text-xs font-bold uppercase tracking-widest text-red-700 mb-3">⚠ Røde Flag</div>
+                  <div class="space-y-2" id="rv-historik-flag"></div>
+                </div>
+              </div>
+              <!-- Grids: adresse + direktør -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div id="rv-adresse-skift-wrap" class="hidden bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] border border-outline-variant/10">
+                  <div class="px-5 py-3 bg-surface-container-low flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Adresseændringer</span>
+                    <span id="rv-adresse-count" class="text-xs bg-orange-100 text-orange-700 font-bold px-2 py-0.5 rounded-full"></span>
+                  </div>
+                  <div class="divide-y divide-surface-container-low" id="rv-adresse-skift"></div>
+                </div>
+                <div id="rv-direktor-skift-wrap" class="hidden bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] border border-outline-variant/10">
+                  <div class="px-5 py-3 bg-surface-container-low flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Direktør-/ledelseskift</span>
+                    <span id="rv-direktor-count" class="text-xs bg-orange-100 text-orange-700 font-bold px-2 py-0.5 rounded-full"></span>
+                  </div>
+                  <div class="divide-y divide-surface-container-low" id="rv-direktor-skift"></div>
+                </div>
+              </div>
+              <!-- Navneændringer -->
+              <div id="rv-navn-skift-wrap" class="hidden bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] border border-outline-variant/10">
+                <div class="px-5 py-3 bg-surface-container-low">
+                  <span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Navneændringer</span>
+                </div>
+                <div class="divide-y divide-surface-container-low" id="rv-navn-skift"></div>
+              </div>
+              <!-- Samlet vurdering -->
+              <div id="rv-historik-vurdering-wrap" class="hidden">
+                <div class="bg-primary-container/10 border-l-4 border-primary/30 rounded-r-xl p-5">
+                  <p class="text-sm text-on-surface leading-relaxed" id="rv-historik-vurdering"></p>
+                </div>
+              </div>
+              <!-- Tom state -->
+              <div id="rv-historik-empty" class="hidden bg-surface-container-lowest rounded-xl p-8 text-center shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] border border-outline-variant/10">
+                <div class="text-3xl mb-2">✓</div>
+                <p class="text-sm text-on-surface-variant">Ingen usædvanlige ændringer registreret i CVR</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 11: Retssager & inkasso -->
+          <div id="anchor-s11" class="report-section">
+            <div class="section-header">
+              <div class="section-header-bar bg-red-400"></div>
+              <div>
+                <div class="section-header-label">Sektion 11</div>
+                <div class="section-header-title">Retssager &amp; Inkasso</div>
+              </div>
+            </div>
+            <div class="space-y-4">
+              <!-- Risk badge + vurdering -->
+              <div class="bg-surface-container-lowest rounded-xl p-6 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] border border-outline-variant/10 flex items-start gap-5">
+                <span id="rv-s11-risiko-badge" class="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider border">—</span>
+                <p class="text-sm text-on-surface leading-relaxed" id="rv-s11-vurdering"></p>
+              </div>
+              <!-- Fund fra Statstidende -->
+              <div id="rv-retssager-wrap" class="hidden">
+                <div class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Fund fra Statstidende.dk</div>
+                <div class="space-y-3" id="rv-retssager-list"></div>
+                <p class="text-xs text-on-surface-variant/60 mt-3">Kilde: Statstidende.dk — officielle konkurs-, likvidations- og rekonstruktionsmeddelelser</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 04 -->
+          <div id="anchor-s04" class="report-section">
+            <div class="section-header">
+              <div class="section-header-bar bg-violet-400"></div>
+              <div>
+                <div class="section-header-label">Sektion 04</div>
+                <div class="section-header-title">Regnskab</div>
+              </div>
+            </div>
+            <div class="space-y-5">
+              <div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] border border-outline-variant/10">
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm" id="rv-regnskab">
+                    <thead id="rv-regnskab-thead"><tr class="bg-surface-container-low text-left"><th class="px-6 py-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Regnskabspost</th></tr></thead>
+                    <tbody class="divide-y divide-surface-container-low" id="rv-regnskab-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="rv-s04-analyse-wrap" class="hidden">
+                <div class="bg-primary-container/10 border-l-4 border-primary/30 rounded-r-xl p-5">
+                  <div class="text-xs font-bold uppercase tracking-widest text-primary mb-2">Finansiel Analyse</div>
+                  <p class="text-sm text-on-surface leading-relaxed" id="rv-s04-analyse"></p>
+                </div>
+              </div>
+              <div id="rv-noegletal-wrap" class="hidden">
+                <div class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Nøgletal</div>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm" id="rv-noegletal"></table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 05 -->
+          <div id="anchor-s05" class="report-section">
+            <div class="section-header">
+              <div class="section-header-bar bg-amber-400"></div>
+              <div>
+                <div class="section-header-label">Sektion 05</div>
+                <div class="section-header-title">Kreditvurdering</div>
+              </div>
+            </div>
+            <div class="bg-surface-container-lowest rounded-xl p-6 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] border border-outline-variant/10 space-y-5">
+              <div id="rv-kreditpunkter" class="space-y-2"></div>
+              <div id="rv-kreditnote-wrap" class="hidden">
+                <div class="bg-primary-container/10 border-l-4 border-primary/30 rounded-r-xl p-5">
+                  <div class="text-xs font-bold uppercase tracking-widest text-primary mb-2">Kreditnotat</div>
+                  <p class="text-sm text-on-surface leading-relaxed" id="rv-kreditnote"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 06 -->
+          <div id="anchor-s06" class="report-section">
+            <div class="section-header">
+              <div class="section-header-bar bg-sky-400"></div>
+              <div>
+                <div class="section-header-label">Sektion 06</div>
+                <div class="section-header-title">Nyheder &amp; Mediebillede</div>
+              </div>
+            </div>
+            <div class="space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="rv-soegeresultater"></div>
+              <div id="rv-positive-obs-wrap" class="hidden">
+                <div class="bg-green-50/60 border-l-4 border-green-300/60 rounded-r-xl p-5">
+                  <div class="text-xs font-bold uppercase tracking-widest text-green-700 mb-2">Positive Observationer</div>
+                  <p class="text-sm text-on-surface leading-relaxed" id="rv-positive-obs"></p>
+                </div>
+              </div>
+              <!-- Trustpilot -->
+              <div id="rv-trustpilot-wrap" class="hidden">
+                <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/10 overflow-hidden">
+                  <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/10">
+                    <div class="flex items-center gap-3">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="#00b67a"><path d="M12 0L14.59 8.41H23.5L16.45 13.59L19.04 22L12 16.82L4.96 22L7.55 13.59L.5 8.41H9.41L12 0Z"/></svg>
+                      <span class="text-sm font-bold text-on-surface">Trustpilot</span>
+                      <span id="rv-tp-rating-badge" class="px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800"></span>
+                    </div>
+                    <a id="rv-tp-link" href="#" target="_blank" class="text-xs text-primary hover:underline hidden">Se profil →</a>
+                  </div>
+                  <div class="px-6 py-4 space-y-4">
+                    <div class="flex items-center gap-6">
+                      <div class="text-center">
+                        <div class="text-3xl font-extrabold font-headline text-on-surface" id="rv-tp-score">—</div>
+                        <div class="text-xs text-on-surface-variant mt-1" id="rv-tp-antal"></div>
+                      </div>
+                      <div class="flex-1">
+                        <p class="text-sm text-on-surface leading-relaxed" id="rv-tp-resume"></p>
+                        <div id="rv-tp-flag-wrap" class="hidden mt-3 space-y-1"></div>
+                      </div>
+                    </div>
+                    <div id="rv-tp-reviews" class="space-y-3 hidden"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 07 -->
+          <div id="anchor-s07" class="report-section">
+            <div class="section-header">
+              <div class="section-header-bar bg-cyan-400"></div>
+              <div>
+                <div class="section-header-label">Sektion 07</div>
+                <div class="section-header-title">Brancheanalyse</div>
+              </div>
+            </div>
+            <div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] border border-outline-variant/10 space-y-5 p-6">
+              <div id="rv-s07-marked-wrap" class="hidden">
+                <div class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Markedssituation</div>
+                <p class="text-sm text-on-surface leading-relaxed" id="rv-s07-marked"></p>
+              </div>
+              <div id="rv-benchmarking-wrap" class="hidden">
+                <div class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Benchmarking</div>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm" id="rv-benchmarking">
+                    <tbody class="zebra-table divide-y divide-surface-container-low"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="rv-benchmarking-note-wrap" class="hidden">
+                <div class="bg-primary-container/10 border-l-4 border-primary/30 rounded-r-xl p-5">
+                  <p class="text-sm text-on-surface leading-relaxed" id="rv-benchmarking-note"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 08 -->
+          <div id="anchor-s08" class="report-section">
+            <div class="section-header">
+              <div class="section-header-bar bg-rose-400"></div>
+              <div>
+                <div class="section-header-label">Sektion 08</div>
+                <div class="section-header-title">Ledelsesprofiler</div>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5" id="rv-ledelsesprofiler"></div>
+            <div id="rv-s08-anbefaling" class="hidden mt-5 bg-primary-container/10 border-l-4 border-primary/30 rounded-r-xl p-5">
+              <div class="text-xs font-bold uppercase tracking-widest text-primary mb-2">Anbefaling</div>
+              <p class="text-sm text-on-surface leading-relaxed" id="rv-s08-anbefaling-text"></p>
+            </div>
+          </div>
+
+          <!-- Section 09 -->
+          <div id="anchor-s09" class="report-section">
+            <div class="section-header">
+              <div class="section-header-bar bg-red-500"></div>
+              <div>
+                <div class="section-header-label">Sektion 09</div>
+                <div class="section-header-title">Samlet Vurdering</div>
+              </div>
+            </div>
+            <div class="space-y-5">
+              <!-- Big risk badge -->
+              <div class="bg-surface-container-lowest rounded-xl p-8 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] border border-outline-variant/10 flex flex-col md:flex-row md:items-center gap-6">
+                <div class="flex-shrink-0">
+                  <span id="rv-s09-risk-badge" class="px-5 py-2.5 rounded-full text-base font-bold uppercase tracking-widest border">—</span>
+                </div>
+                <p class="text-sm text-on-surface leading-relaxed" id="rv-s09-vurdering"></p>
+              </div>
+              <!-- Risk actions -->
+              <div id="rv-risikohandlinger-wrap" class="hidden">
+                <div class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Risikohandlinger</div>
+                <div class="space-y-3" id="rv-risikohandlinger"></div>
+              </div>
+              <!-- Disclaimer -->
+              <div id="rv-ansvarsfraskrivelse-wrap" class="hidden">
+                <div class="bg-surface-container-low border-l-4 border-outline-variant/30 rounded-r-xl p-5">
+                  <p class="text-xs text-on-surface-variant italic leading-relaxed" id="rv-ansvarsfraskrivelse"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /report-content -->
+      </div><!-- /report-layout -->
+    </div><!-- /report-loaded-state -->
+  </div><!-- /view-report -->
+
+  <!-- ══ VIEW: Settings ═════════════════════════════════════════════════════ -->
+  <div id="view-settings" class="view px-8 py-12 max-w-3xl mx-auto">
+    <div class="mb-12">
+      <h2 class="text-5xl font-extrabold font-headline tracking-tighter text-on-surface mb-3">Indstillinger</h2>
+      <p class="text-on-surface-variant leading-relaxed">Konfigurér platformsindstillinger og API-adgang.</p>
+    </div>
+    <div class="space-y-4">
+      <div class="bg-surface-container-lowest rounded-xl p-8 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.04)]">
+        <h3 class="font-headline font-bold text-lg mb-1">API-forbindelse</h3>
+        <p class="text-sm text-on-surface-variant mb-4">Anthropic API-nøglen er konfigureret i <code class="bg-surface-container-low px-2 py-0.5 rounded text-xs">.env</code> filen på serveren.</p>
+        <div class="flex items-center gap-3">
+          <div class="w-2 h-2 rounded-full bg-green-500"></div>
+          <span class="text-sm font-medium text-on-surface">Forbundet til Claude claude-sonnet-4-6</span>
+        </div>
+      </div>
+      <div class="bg-surface-container-lowest rounded-xl p-8 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.04)]">
+        <h3 class="font-headline font-bold text-lg mb-1">CVR-kilde</h3>
+        <p class="text-sm text-on-surface-variant mb-4">Data hentes fra Erhvervsstyrelsens åbne CVR-register via cvrapi.dk.</p>
+        <div class="flex items-center gap-3">
+          <div class="w-2 h-2 rounded-full bg-green-500"></div>
+          <span class="text-sm font-medium text-on-surface">Gratis adgang — ingen nøgle nødvendig</span>
+        </div>
+      </div>
+      <!-- Excel-skabelon -->
+      <div class="bg-surface-container-lowest rounded-xl p-8 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.04)]">
+        <h3 class="font-headline font-bold text-lg mb-1">Excel-skabelon</h3>
+        <p class="text-sm text-on-surface-variant mb-5">Upload en <code class="bg-surface-container-low px-2 py-0.5 rounded text-xs">.xlsx</code> fil med <code class="bg-surface-container-low px-2 py-0.5 rounded text-xs">{{placeholder}}</code>-variabler. Platformen udfylder dem automatisk, når du downloader en rapport.</p>
+
+        <!-- Current template status -->
+        <div id="template-status" class="flex items-center gap-3 mb-5">
+          <div id="template-indicator" class="w-2 h-2 rounded-full bg-gray-300"></div>
+          <span id="template-label" class="text-sm font-medium text-on-surface-variant">Ingen skabelon uploadet</span>
+          <button id="template-remove-btn" onclick="removeTemplate()" class="hidden text-xs text-red-500 hover:text-red-700 font-semibold ml-1">Fjern</button>
+        </div>
+
+        <!-- Upload area -->
+        <label id="template-upload-area" class="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-outline-variant/40 rounded-xl px-6 py-8 cursor-pointer hover:border-primary/50 hover:bg-primary-container/5 transition-all">
+          <span class="material-symbols-outlined text-3xl text-on-surface-variant/50">upload_file</span>
+          <span class="text-sm font-medium text-on-surface-variant">Klik for at uploade .xlsx skabelon</span>
+          <input type="file" accept=".xlsx,.pdf" class="hidden" onchange="uploadTemplate(this.files[0])">
+        </label>
+
+        <!-- Available placeholders toggle -->
+        <details class="mt-5">
+          <summary class="cursor-pointer text-xs font-semibold text-primary hover:underline select-none">Vis tilgængelige variabler</summary>
+          <div id="placeholder-list" class="mt-3 grid grid-cols-1 gap-1 text-xs max-h-72 overflow-y-auto pr-1">
+            <!-- filled by JS -->
+          </div>
+        </details>
+      </div>
+
+      <!-- Hosting -->
+      <div class="bg-surface-container-lowest rounded-xl p-8 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.04)]">
+        <h3 class="font-headline font-bold text-lg mb-1">Del med andre</h3>
+        <p class="text-sm text-on-surface-variant mb-4">For at give andre adgang skal platformen ligge online. Deploy med Railway (gratis):</p>
+        <ol class="text-sm text-on-surface-variant space-y-2 list-decimal list-inside">
+          <li>Opret konto på <a href="https://railway.app" target="_blank" class="text-primary hover:underline">railway.app</a></li>
+          <li>Klik <strong>"New Project → Deploy from GitHub"</strong> og vælg dit repo</li>
+          <li>Tilføj environment variables: <code class="bg-surface-container-low px-1.5 py-0.5 rounded text-xs">ANTHROPIC_API_KEY</code> og <code class="bg-surface-container-low px-1.5 py-0.5 rounded text-xs">ACCESS_PASSWORD</code></li>
+          <li>Railway bygger fra Dockerfile og giver dig en URL på ~2 min</li>
+        </ol>
+        <p class="text-xs text-on-surface-variant/60 mt-3">Hurtig demo: kør <code class="bg-surface-container-low px-1.5 py-0.5 rounded text-xs">ngrok http 8000</code> lokalt for en midlertidig offentlig URL.</p>
+      </div>
+
+      <div class="bg-surface-container-lowest rounded-xl p-8 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.04)]">
+        <h3 class="font-headline font-bold text-lg mb-2">Ansvarsfraskrivelse</h3>
+        <p class="text-sm text-on-surface-variant leading-relaxed">Rapporterne er baseret på offentligt tilgængelige data og AI-analyse. De udgør ikke en juridisk due diligence, komplet AML-analyse, eller kreditfaglig vurdering. Revisor er ansvarlig for at indhente yderligere dokumentation.</p>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+</div><!-- /#main-layout -->
+
+<!-- ── Excel preview modal ───────────────────────────────────────────────────── -->
+<div id="excel-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,.45)">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/20">
+      <div>
+        <h3 class="font-headline font-bold text-lg text-on-surface">Bekræft Excel-download</h3>
+        <p class="text-xs text-on-surface-variant mt-0.5">Data der indsættes i din skabelon</p>
+      </div>
+      <button onclick="closeExcelPreview()" class="text-on-surface-variant hover:text-on-surface transition-colors">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <!-- Table -->
+    <div class="overflow-y-auto flex-1 px-6 py-4">
+      <div id="excel-preview-loading" class="py-12 text-center text-on-surface-variant">
+        <span class="material-symbols-outlined text-3xl animate-spin block mb-2">autorenew</span>
+        Henter forhåndsvisning…
+      </div>
+      <table id="excel-preview-table" class="hidden w-full text-sm border-collapse">
+        <thead>
+          <tr class="text-left text-xs text-on-surface-variant border-b border-outline-variant/20">
+            <th class="pb-2 pr-4 font-semibold">Felt</th>
+            <th class="pb-2 pr-4 font-semibold">Celle</th>
+            <th class="pb-2 font-semibold">Værdi der indsættes</th>
+          </tr>
+        </thead>
+        <tbody id="excel-preview-body"></tbody>
+      </table>
+      <p id="excel-preview-empty" class="hidden py-8 text-center text-on-surface-variant text-sm">Ingen feltmatchninger fundet i skabelonen.</p>
+    </div>
+    <!-- Footer -->
+    <div class="flex gap-3 justify-end px-6 py-4 border-t border-outline-variant/20">
+      <button onclick="closeExcelPreview()" class="px-5 py-2.5 border border-outline-variant/30 text-on-surface-variant rounded-lg text-sm font-semibold hover:bg-surface-container-low transition-all">Annuller</button>
+      <button onclick="downloadExcel()" class="px-5 py-2.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition-all flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">download</span> Download Excel
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Mobile bottom nav ──────────────────────────────────────────────────── -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 md:hidden bg-white/80 backdrop-blur-md shadow-[0_-10px_40px_-10px_rgba(43,52,55,0.08)] rounded-t-xl" style="border-top: 1px solid rgba(171,179,183,0.1)">
+  <button onclick="navigate('dashboard')" class="flex flex-col items-center text-[#535f6f]/50 px-4 py-1">
+    <span class="material-symbols-outlined">grid_view</span>
+    <span class="text-[10px] uppercase tracking-widest font-bold">Oversigt</span>
+  </button>
+  <button onclick="navigate('search')" class="flex flex-col items-center text-[#535f6f]/50 px-4 py-1">
+    <span class="material-symbols-outlined">search</span>
+    <span class="text-[10px] uppercase tracking-widest font-bold">Søg</span>
+  </button>
+  <button onclick="navigate('reports')" class="flex flex-col items-center text-[#535f6f]/50 px-4 py-1">
+    <span class="material-symbols-outlined">analytics</span>
+    <span class="text-[10px] uppercase tracking-widest font-bold">Rapporter</span>
+  </button>
+  <button onclick="navigate('report')" class="flex flex-col items-center text-[#535f6f]/50 px-4 py-1">
+    <span class="material-symbols-outlined">description</span>
+    <span class="text-[10px] uppercase tracking-widest font-bold">Rapport</span>
+  </button>
+  <button onclick="navigate('settings')" class="flex flex-col items-center text-[#535f6f]/50 px-4 py-1">
+    <span class="material-symbols-outlined">settings</span>
+    <span class="text-[10px] uppercase tracking-widest font-bold">Indstillinger</span>
+  </button>
+</nav>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const state = {
+  currentView: 'search',
+  reports: JSON.parse(localStorage.getItem('architect_reports') || '[]'),
+  currentReport: null,
+};
+
+// ── Auth ──────────────────────────────────────────────────────────────────
+let _authToken = localStorage.getItem('auth_token') || '';
+
+function _headers(extra) {
+  return Object.assign({ 'Content-Type': 'application/json', 'X-Auth-Token': _authToken }, extra || {});
+}
+
+async function _fetch(url, opts) {
+  const res = await fetch(url, Object.assign({}, opts, {
+    headers: Object.assign({ 'X-Auth-Token': _authToken }, opts && opts.headers || {})
+  }));
+  if (res.status === 401) { _logout(); throw new Error('Session udløbet — log ind igen.'); }
+  return res;
+}
+
+function _logout() {
+  localStorage.removeItem('auth_token');
+  _authToken = '';
+  document.getElementById('view-login').classList.remove('hidden');
+  document.getElementById('main-layout').classList.add('hidden');
+}
+
+// ── Risk helpers ───────────────────────────────────────────────────────────
+function riskClasses(level) {
+  const l = (level || '').toLowerCase();
+  if (l === 'lav')    return { badge: 'text-green-700 bg-green-50 border-green-200',  dot: 'bg-green-500',  label: 'Lav' };
+  if (l === 'middel') return { badge: 'text-orange-700 bg-orange-50 border-orange-200', dot: 'bg-orange-400', label: 'Middel' };
+  if (l === 'høj')    return { badge: 'text-red-700 bg-red-50 border-red-200',       dot: 'bg-red-500',    label: 'Høj' };
+  return { badge: 'text-gray-500 bg-gray-50 border-gray-200', dot: 'bg-gray-400', label: level || 'Ukendt' };
+}
+
+function riskBadgeHTML(level, extra) {
+  const rc = riskClasses(level);
+  return `<span class="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${rc.badge} ${extra||''}">${rc.label}</span>`;
+}
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+function navigate(view) {
+  state.currentView = view;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.classList.remove('active');
+    btn.classList.add('text-[#535f6f]/70');
+  });
+  const activeBtn = document.querySelector(`[data-view="${view}"]`);
+  if (activeBtn) { activeBtn.classList.add('active'); activeBtn.classList.remove('text-[#535f6f]/70'); }
+
+  const titles = {
+    dashboard: 'Intelligence',
+    search: 'Søg Virksomhed',
+    reports: 'Risk Reports',
+    report: 'Rapport',
+    settings: 'Indstillinger'
+  };
+  document.getElementById('topbar-title').textContent = titles[view] || 'The Precision Sanctuary';
+
+  if (view === 'dashboard') refreshDashboard();
+  if (view === 'reports') refreshReports();
+  if (view === 'report') {
+    if (state.currentReport) {
+      document.getElementById('report-empty-state').classList.add('hidden');
+      document.getElementById('report-loaded-state').classList.remove('hidden');
+    } else {
+      document.getElementById('report-empty-state').classList.remove('hidden');
+      document.getElementById('report-loaded-state').classList.add('hidden');
+    }
+  }
+}
+
+function setExample(cvr) {
+  document.getElementById('cvr-input').value = cvr;
+  document.getElementById('cvr-input').focus();
+}
+
+// ── Generate ───────────────────────────────────────────────────────────────
+async function startGenerate() {
+  const cvr = document.getElementById('cvr-input').value.replace(/\D/g, '').trim();
+  const errEl = document.getElementById('search-error');
+  const errText = document.getElementById('search-error-text');
+
+  errEl.classList.add('hidden');
+
+  if (!/^\d{8}$/.test(cvr)) {
+    errText.textContent = 'Angiv venligst et gyldigt 8-cifret CVR-nummer.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  document.getElementById('suggested-panel').classList.add('hidden');
+  document.getElementById('progress-panel').classList.remove('hidden');
+  document.getElementById('search-btn').disabled = true;
+  document.getElementById('search-btn-text').textContent = 'Arbejder…';
+
+  resetSteps();
+
+  try {
+    setStep(0, 'active');
+    await sleep(500);
+    setStep(0, 'done');
+    setStep(1, 'active');
+    await sleep(400);
+    setStep(1, 'done');
+    setStep(2, 'active');
+    await sleep(300);
+    setStep(2, 'done');
+    setStep(3, 'active');
+
+    const res = await _fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cvr }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Ukendt fejl' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    setStep(3, 'done');
+
+    state.currentReport = data;
+
+    const companyName = (data.meta && data.meta.selskabsnavn) || cvr;
+    const riskLevel   = (data.sektion_09 && data.sektion_09.risiko_niveau) || 'ukendt';
+    const date        = (data.meta && data.meta.rapport_dato) || new Date().toLocaleDateString('da-DK');
+
+    // Save to history (store report JSON, not blob)
+    const entry = {
+      cvr,
+      name: companyName,
+      date,
+      risk: riskLevel,
+      reportData: data,
+    };
+    state.reports.unshift(entry);
+    localStorage.setItem('architect_reports', JSON.stringify(state.reports.slice(0, 20)));
+
+    await sleep(600);
+
+    renderReport(data);
+    navigate('report');
+
+  } catch (e) {
+    setStep(3, 'error');
+    errText.textContent = `Fejl: ${e.message}`;
+    errEl.classList.remove('hidden');
+  } finally {
+    document.getElementById('search-btn').disabled = false;
+    document.getElementById('search-btn-text').textContent = 'SØG';
+    document.getElementById('progress-panel').classList.add('hidden');
+    document.getElementById('suggested-panel').classList.remove('hidden');
+    addRecentLookup(document.getElementById('cvr-input').value);
+  }
+}
+
+// ── KTV download ───────────────────────────────────────────────────────────
+async function downloadKTV() {
+  if (!state.currentReport) return;
+  try {
+    const res = await _fetch('/api/ktv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state.currentReport),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const cd = res.headers.get('Content-Disposition') || '';
+    const match = cd.match(/filename="([^"]+)"/);
+    const cvr = (state.currentReport.meta && state.currentReport.meta.cvr) || 'ktv';
+    const filename = match ? match[1] : `KTV_${cvr}.pdf`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (e) {
+    alert(`KTV-download fejlede: ${e.message}`);
+  }
+}
+
+// ── Excel template management ──────────────────────────────────────────────
+
+let _templateFilename = null;
+
+async function initTemplateStatus() {
+  try {
+    const res = await _fetch('/api/template');
+    const data = await res.json();
+    _setTemplateUI(data.filename);
+  } catch (_) {}
+}
+
+function _setTemplateUI(filename, detectedFields) {
+  _templateFilename = filename;
+  const indicator    = document.getElementById('template-indicator');
+  const label        = document.getElementById('template-label');
+  const removeBtn    = document.getElementById('template-remove-btn');
+  const excelBtnTop  = document.getElementById('excel-btn-top');
+  const excelBtnBot  = document.getElementById('excel-btn-bottom');
+
+  if (filename) {
+    indicator && indicator.classList.remove('bg-gray-300','bg-yellow-400');
+    indicator && indicator.classList.add('bg-green-500');
+    if (label) {
+      const n = detectedFields ? detectedFields.length : '';
+      label.textContent = filename + (n ? ` — ${n} felter identificeret` : '');
+    }
+    removeBtn   && removeBtn.classList.remove('hidden');
+    excelBtnTop && excelBtnTop.classList.remove('hidden');
+    excelBtnBot && excelBtnBot.classList.remove('hidden');
+  } else {
+    indicator && indicator.classList.remove('bg-green-500','bg-yellow-400');
+    indicator && indicator.classList.add('bg-gray-300');
+    if (label) label.textContent = 'Ingen skabelon uploadet';
+    removeBtn   && removeBtn.classList.add('hidden');
+    excelBtnTop && excelBtnTop.classList.add('hidden');
+    excelBtnBot && excelBtnBot.classList.add('hidden');
+  }
+}
+
+async function uploadTemplate(file) {
+  if (!file) return;
+  const label     = document.getElementById('template-label');
+  const indicator = document.getElementById('template-indicator');
+  if (label)     label.textContent = 'Analyserer skabelon med AI…';
+  if (indicator) { indicator.classList.remove('bg-gray-300','bg-green-500'); indicator.classList.add('bg-yellow-400'); }
+
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const res = await fetch('/api/template/upload', { method: 'POST', body: fd, headers: { 'X-Auth-Token': _authToken } });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+      alert(`Upload fejlede: ${err.detail}`);
+      _setTemplateUI(null);
+      return;
+    }
+    const data = await res.json();
+    _setTemplateUI(data.filename, data.detected_fields);
+  } catch (e) {
+    alert(`Upload fejlede: ${e.message}`);
+    _setTemplateUI(null);
+  }
+}
+
+async function removeTemplate() {
+  await fetch('/api/template', { method: 'DELETE', headers: { 'X-Auth-Token': _authToken } });
+  _setTemplateUI(null);
+}
+
+// ── Excel preview modal ────────────────────────────────────────────────────
+
+async function openExcelPreview() {
+  if (!state.currentReport) return;
+  if (!_templateFilename) { alert('Upload en skabelon under Indstillinger først.'); return; }
+
+  // Show modal with loading state
+  document.getElementById('excel-modal').classList.remove('hidden');
+  document.getElementById('excel-preview-loading').classList.remove('hidden');
+  document.getElementById('excel-preview-table').classList.add('hidden');
+  document.getElementById('excel-preview-empty').classList.add('hidden');
+
+  try {
+    const res = await _fetch('/api/template/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state.currentReport),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = await res.json();
+
+    document.getElementById('excel-preview-loading').classList.add('hidden');
+
+    if (!rows.length) {
+      document.getElementById('excel-preview-empty').classList.remove('hidden');
+      return;
+    }
+
+    const tbody = document.getElementById('excel-preview-body');
+    tbody.innerHTML = rows.map(r => {
+      const valDisplay = r.value
+        ? `<span class="text-on-surface">${r.value.length > 80 ? r.value.slice(0,80)+'…' : r.value}</span>`
+        : `<span class="text-on-surface-variant/40 italic">—</span>`;
+      return `<tr class="border-b border-outline-variant/10 hover:bg-surface-container-low/50">
+        <td class="py-2 pr-4 text-on-surface font-medium">${r.label}</td>
+        <td class="py-2 pr-4 font-mono text-xs text-primary">${r.cell}</td>
+        <td class="py-2">${valDisplay}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('excel-preview-table').classList.remove('hidden');
+  } catch (e) {
+    document.getElementById('excel-preview-loading').classList.add('hidden');
+    document.getElementById('excel-preview-empty').classList.remove('hidden');
+    document.getElementById('excel-preview-empty').textContent = `Fejl: ${e.message}`;
+  }
+}
+
+function closeExcelPreview() {
+  document.getElementById('excel-modal').classList.add('hidden');
+}
+
+// Close modal on backdrop click
+document.getElementById('excel-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('excel-modal')) closeExcelPreview();
+});
+
+async function downloadExcel() {
+  if (!state.currentReport) return;
+  closeExcelPreview();
+  try {
+    const res = await _fetch('/api/excel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state.currentReport),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+      throw new Error(err.detail);
+    }
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const cd   = res.headers.get('Content-Disposition') || '';
+    const m    = cd.match(/filename="([^"]+)"/);
+    const cvr  = (state.currentReport.meta && state.currentReport.meta.cvr) || 'rapport';
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = m ? m[1] : `rapport_${cvr}.xlsx`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (e) {
+    alert(`Excel-download fejlede: ${e.message}`);
+  }
+}
+
+async function loadPlaceholders() {
+  const container = document.getElementById('placeholder-list');
+  if (!container || container.dataset.loaded) return;
+  try {
+    const res   = await _fetch('/api/placeholders');
+    const items = await res.json();
+    container.innerHTML = items.map(p =>
+      `<div class="flex gap-2 items-start py-1 border-b border-outline-variant/10">
+        <code class="text-primary font-mono shrink-0 w-52">${p.var}</code>
+        <span class="text-on-surface-variant">${p.beskrivelse}</span>
+      </div>`
+    ).join('');
+    container.dataset.loaded = '1';
+  } catch (_) {}
+}
+
+// ── PDF download ───────────────────────────────────────────────────────────
+async function downloadPDF() {
+  if (!state.currentReport) return;
+  try {
+    const res = await _fetch('/api/pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state.currentReport),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const cd = res.headers.get('Content-Disposition') || '';
+    const match = cd.match(/filename="([^"]+)"/);
+    const cvr = (state.currentReport.meta && state.currentReport.meta.cvr) || 'rapport';
+    const filename = match ? match[1] : `Due_Diligence_${cvr}.pdf`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (e) {
+    alert(`PDF-download fejlede: ${e.message}`);
+  }
+}
+
+// ── Render report ──────────────────────────────────────────────────────────
+function renderReport(data) {
+  const meta  = data.meta  || {};
+  const s01   = data.sektion_01 || {};
+  const s02   = data.sektion_02 || {};
+  const s03   = data.sektion_03 || {};
+  const s04   = data.sektion_04 || {};
+  const s05   = data.sektion_05 || {};
+  const s06   = data.sektion_06 || {};
+  const s07   = data.sektion_07 || {};
+  const s08   = data.sektion_08 || {};
+  const s09   = data.sektion_09 || {};
+  const risikoOversigt = data.risiko_oversigt || [];
+
+  const companyName = meta.selskabsnavn || s01.selskabsnavn || '—';
+  const riskLevel   = (s09.risiko_niveau || 'ukendt').toLowerCase();
+  const rc          = riskClasses(riskLevel);
+
+  // Header
+  document.getElementById('rv-company-name').textContent = companyName;
+  const rvBadge = document.getElementById('rv-risk-badge');
+  rvBadge.textContent = rc.label;
+  rvBadge.className = `px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${rc.badge}`;
+  document.getElementById('rv-meta').textContent =
+    [meta.cvr && `CVR ${meta.cvr}`, meta.rapport_dato && `Genereret ${meta.rapport_dato}`, meta.adresse].filter(Boolean).join(' · ');
+
+  // Update section nav dots from risk overview
+  const sectionRiskMap = {};
+  risikoOversigt.forEach(r => {
+    // map indicator names to sections best-effort
+    const ind = (r.indikator || '').toLowerCase();
+    if (ind.includes('cvr') || ind.includes('selskab')) sectionRiskMap['s01'] = r.vurdering;
+    if (ind.includes('ledelse') || ind.includes('ejer') || ind.includes('ubo')) sectionRiskMap['s02'] = r.vurdering;
+    if (ind.includes('struktur') || ind.includes('koncern')) sectionRiskMap['s03'] = r.vurdering;
+    if (ind.includes('regnskab') || ind.includes('finans')) sectionRiskMap['s04'] = r.vurdering;
+    if (ind.includes('kredit')) sectionRiskMap['s05'] = r.vurdering;
+    if (ind.includes('nyhed') || ind.includes('presse') || ind.includes('medie')) sectionRiskMap['s06'] = r.vurdering;
+    if (ind.includes('branche')) sectionRiskMap['s07'] = r.vurdering;
+    if (ind.includes('pep') || ind.includes('profil')) sectionRiskMap['s08'] = r.vurdering;
+  });
+  ['s01','s02','s03','s04','s05','s06','s07','s08','s09','s10','s11'].forEach(k => {
+    const dot = document.getElementById(`dot-${k}`);
+    if (dot) {
+      const lvl = k === 's09' ? riskLevel : (sectionRiskMap[k] || 'ukendt');
+      const dotRC = riskClasses(lvl);
+      dot.className = `report-nav-dot ${dotRC.dot}`;
+    }
+  });
+
+  // ── Risk overview cards ────────────────────────────────────────────────
+  const riskOverviewEl = document.getElementById('rv-risk-overview');
+  if (risikoOversigt.length) {
+    const iconMap = {
+      default: 'shield',
+      presse: 'newspaper', medie: 'newspaper', nyhed: 'newspaper',
+      konkurs: 'gavel', betalings: 'gavel',
+      ubo: 'verified_user', ejer: 'verified_user',
+      finans: 'trending_up', regnskab: 'bar_chart',
+      kredit: 'credit_score',
+      ledelse: 'manage_accounts',
+      branche: 'factory',
+      pep: 'badge',
+      struktur: 'account_tree',
+    };
+    riskOverviewEl.innerHTML = risikoOversigt.map(r => {
+      const rl = (r.vurdering || 'ukendt').toLowerCase();
+      const orc = riskClasses(rl);
+      const indLow = (r.indikator || '').toLowerCase();
+      let icon = 'shield';
+      for (const [k, v] of Object.entries(iconMap)) {
+        if (indLow.includes(k)) { icon = v; break; }
+      }
+      return `
+        <div class="bg-surface-container-lowest rounded-xl p-4 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] border border-outline-variant/10 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <span class="material-symbols-outlined text-xl text-on-surface-variant">${icon}</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${orc.badge}">${orc.label}</span>
+          </div>
+          <div class="font-bold text-sm text-on-surface leading-tight">${esc(r.indikator)}</div>
+          <div class="text-xs text-on-surface-variant">${esc(r.status_tekst)}</div>
+          ${r.bemærkning ? `<div class="text-xs text-on-surface-variant/70 truncate" title="${esc(r.bemærkning)}">${esc(r.bemærkning)}</div>` : ''}
+        </div>`;
+    }).join('');
+  } else {
+    riskOverviewEl.innerHTML = '<p class="text-sm text-on-surface-variant col-span-4">Ingen risikoindikatordata.</p>';
+  }
+
+  // ── Section 01 ────────────────────────────────────────────────────────
+  const s01Fields = [
+    ['Selskabsnavn',  s01.selskabsnavn],
+    ['CVR-nummer',    s01.cvr_nummer],
+    ['Selskabsform',  s01.selskabsform],
+    ['Adresse',       s01.adresse],
+    ['Stiftelsesdato',s01.stiftelsesdato],
+    ['Branchekode',   s01.branchekode],
+    ['Formål',        s01.formaal],
+    ['Status',        s01.status],
+    ['Website',       s01.website],
+  ];
+  document.getElementById('rv-s01-kv').innerHTML = s01Fields
+    .filter(([,v]) => v)
+    .map(([k, v]) => `
+      <div class="flex items-start py-3 border-b border-outline-variant/10">
+        <div class="w-36 flex-shrink-0 text-xs font-bold uppercase tracking-wider text-on-surface-variant pt-0.5">${esc(k)}</div>
+        <div class="text-sm text-on-surface">${esc(v)}</div>
+      </div>`)
+    .join('');
+
+  if (s01.selskabsbeskrivelse) {
+    document.getElementById('rv-s01-desc').textContent = s01.selskabsbeskrivelse;
+    document.getElementById('rv-s01-desc-wrap').classList.remove('hidden');
+  }
+
+  if (s01.kontorer && s01.kontorer.length) {
+    document.getElementById('rv-s01-kontorer').innerHTML = s01.kontorer.map(k =>
+      `<div class="px-3 py-1.5 bg-surface-container-low rounded-lg text-xs text-on-surface font-medium">${esc(k.land_by)}${k.funktion ? ` <span class="text-on-surface-variant">· ${esc(k.funktion)}</span>` : ''}</div>`
+    ).join('');
+    document.getElementById('rv-s01-kontorer-wrap').classList.remove('hidden');
+  }
+
+  // ── Section 02 ────────────────────────────────────────────────────────
+  // Direktion
+  const direktionTbody = document.querySelector('#rv-direktion tbody');
+  if (s02.direktion && s02.direktion.length) {
+    direktionTbody.innerHTML = s02.direktion.map((p, i) => `
+      <tr class="${i % 2 === 1 ? 'bg-surface-container-low' : ''}">
+        <td class="px-6 py-3 font-semibold text-on-surface">${esc(p.navn)}</td>
+        <td class="px-6 py-3 text-on-surface-variant">${esc(p.rolle)}</td>
+        <td class="px-6 py-3 text-on-surface-variant">${esc(p.tilknyttet_siden)}</td>
+        <td class="px-6 py-3 text-on-surface-variant text-xs">${esc(p.bemaerkning)}</td>
+      </tr>`).join('');
+  } else {
+    direktionTbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-sm text-on-surface-variant italic">Ingen data</td></tr>';
+  }
+
+  // Reelle ejere
+  const ejereTbody = document.querySelector('#rv-ejere tbody');
+  if (s02.reelle_ejere && s02.reelle_ejere.length) {
+    ejereTbody.innerHTML = s02.reelle_ejere.map((e, i) => `
+      <tr class="${i % 2 === 1 ? 'bg-surface-container-low' : ''}">
+        <td class="px-6 py-3 font-semibold text-on-surface">${esc(e.navn)}</td>
+        <td class="px-6 py-3 text-on-surface-variant">${esc(e.ejerandel)}</td>
+        <td class="px-6 py-3 text-on-surface-variant">${esc(e.stemmeandel)}</td>
+        <td class="px-6 py-3 text-on-surface-variant">${esc(e.besiddelse)}</td>
+        <td class="px-6 py-3 text-on-surface-variant text-xs">${esc(e.dato_registreret)}</td>
+      </tr>`).join('');
+  } else {
+    ejereTbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-sm text-on-surface-variant italic">Ingen data</td></tr>';
+  }
+
+  // UBO note
+  if (s02.ubo_note) {
+    document.getElementById('rv-ubo-note').textContent = s02.ubo_note;
+    document.getElementById('rv-ubo-note-wrap').classList.remove('hidden');
+  }
+
+  // PEP screening — OpenSanctions resultater
+  const pepList = s02.pep_screening || [];
+  if (pepList.length) {
+    document.getElementById('rv-pep-screening-list').innerHTML = pepList.map(p => {
+      const isClear = p.screenet && !p.pep && !p.sanktioner;
+      const isHit   = p.pep || p.sanktioner;
+      const isUnknown = !p.screenet;
+      const bg = isHit ? 'bg-red-50/70 border-red-200 border-l-4 border-l-red-500'
+               : isUnknown ? 'bg-surface-container-lowest border-outline-variant/10'
+               : 'bg-green-50/50 border-green-200';
+      const icon = isHit ? '⚠' : isUnknown ? '?' : '✓';
+      const iconColor = isHit ? 'text-red-600' : isUnknown ? 'text-on-surface-variant' : 'text-green-600';
+      const label = isHit ? (p.pep && p.sanktioner ? 'PEP + Sanktion' : p.pep ? 'PEP-hit' : 'Sanktionshit')
+                  : isUnknown ? 'Ikke screenet' : 'Ingen fund';
+      const badgeCls = isHit ? 'bg-red-100 text-red-800 border-red-200'
+                    : isUnknown ? 'bg-surface-container text-on-surface-variant border-outline-variant'
+                    : 'bg-green-100 text-green-800 border-green-200';
+      return `
+        <div class="rounded-xl border p-4 ${bg} shadow-[0_2px_8px_-2px_rgba(43,52,55,0.06)]">
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-base ${iconColor}">${icon}</span>
+              <span class="font-semibold text-sm text-on-surface">${esc(p.navn)}</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold border ${badgeCls}">${esc(label)}</span>
+          </div>
+          ${p.fund_detaljer ? `<p class="text-xs text-on-surface-variant mt-1.5 leading-relaxed">${esc(p.fund_detaljer)}</p>` : ''}
+          ${p.anbefaling ? `<p class="text-xs mt-1 font-medium ${isHit ? 'text-red-700' : 'text-on-surface-variant'}">${esc(p.anbefaling)}</p>` : ''}
+        </div>`;
+    }).join('');
+    document.getElementById('rv-pep-screening-wrap').classList.remove('hidden');
+  }
+
+  // PEP note (fallback fra AI)
+  if (!pepList.length && s02.pep_screening_note) {
+    document.getElementById('rv-pep-note').textContent = s02.pep_screening_note;
+    document.getElementById('rv-pep-note-wrap').classList.remove('hidden');
+  }
+
+  // Person DD
+  const personDDEl = document.getElementById('rv-person-dd');
+  if (s02.person_due_diligence && s02.person_due_diligence.length) {
+    personDDEl.innerHTML = s02.person_due_diligence.map(p => {
+      const hasKonkurs = (p.konkurs_antal || 0) > 0;
+      const prc = riskClasses(p.risiko_vurdering);
+      const borderClass = hasKonkurs
+        ? 'border-red-200 bg-red-50/50 border-l-4 border-l-red-400'
+        : 'border-green-200 bg-green-50/30';
+      const konkurserRows = (p.konkurser || []).map(k => `
+        <div class="flex items-center gap-3 py-2 border-t border-red-100/60 text-xs">
+          <span class="material-symbols-outlined text-sm text-red-500">gavel</span>
+          <span class="font-semibold text-on-surface">${esc(k.navn)}</span>
+          <span class="text-on-surface-variant font-mono">${esc(k.cvr)}</span>
+          <span class="text-on-surface-variant">${esc(k.rolle)}</span>
+          <span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 border border-red-200">${esc(k.status)}</span>
+        </div>`).join('');
+      return `
+        <div class="rounded-xl border p-5 ${borderClass} shadow-[0_4px_16px_-4px_rgba(43,52,55,0.06)]">
+          <div class="flex items-center justify-between gap-3 mb-2">
+            <div class="flex items-center gap-3">
+              ${hasKonkurs ? '<span class="material-symbols-outlined text-red-500">warning</span>' : '<span class="material-symbols-outlined text-green-600">check_circle</span>'}
+              <span class="font-bold text-base text-on-surface">${esc(p.navn)}</span>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              ${hasKonkurs ? `<span class="text-xs font-bold text-red-600">${p.konkurs_antal} konkurs${p.konkurs_antal !== 1 ? 'er' : ''}</span>` : ''}
+              <span class="text-xs text-on-surface-variant">${p.aktive_selskaber_antal || 0} aktive selskaber</span>
+              ${riskBadgeHTML(p.risiko_vurdering)}
+            </div>
+          </div>
+          ${p.bemaerkning ? `<p class="text-xs text-on-surface-variant mt-1 mb-2">${esc(p.bemaerkning)}</p>` : ''}
+          ${konkurserRows ? `<div class="mt-2">${konkurserRows}</div>` : ''}
+        </div>`;
+    }).join('');
+  } else {
+    personDDEl.innerHTML = '<p class="text-sm text-on-surface-variant italic">Ingen persondata fundet.</p>';
+  }
+
+  // Ejer-selskaber DD
+  const ejerSelskaberEl = document.getElementById('rv-ejerselskaber');
+  if (s02.ejer_selskaber_due_diligence && s02.ejer_selskaber_due_diligence.length) {
+    ejerSelskaberEl.innerHTML = s02.ejer_selskaber_due_diligence.map(e => {
+      const erc = riskClasses(e.risiko_vurdering);
+      const isHighRisk = (e.risiko_vurdering || '').toLowerCase() === 'høj';
+      const borderClass = isHighRisk ? 'border-red-200 bg-red-50/40 border-l-4 border-l-red-400' : 'border-outline-variant/10 bg-surface-container-lowest';
+      return `
+        <div class="rounded-xl border p-5 ${borderClass} shadow-[0_4px_16px_-4px_rgba(43,52,55,0.06)]">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="font-bold text-on-surface">${esc(e.navn)}</div>
+              <div class="text-xs text-on-surface-variant mt-0.5">${[e.cvr && `CVR ${esc(e.cvr)}`, esc(e.selskabsform), esc(e.stiftelsesdato)].filter(Boolean).join(' · ')}</div>
+            </div>
+            <div class="flex flex-col items-end gap-1">
+              ${riskBadgeHTML(e.risiko_vurdering)}
+              ${e.ejerandel ? `<span class="text-xs text-on-surface-variant">${esc(e.ejerandel)}</span>` : ''}
+            </div>
+          </div>
+          ${e.konkurs_historik ? `<p class="text-xs text-red-600 mt-2 font-medium">${esc(e.konkurs_historik)}</p>` : ''}
+          ${e.bemaerkning ? `<p class="text-xs text-on-surface-variant mt-1">${esc(e.bemaerkning)}</p>` : ''}
+        </div>`;
+    }).join('');
+  } else {
+    ejerSelskaberEl.innerHTML = '<p class="text-sm text-on-surface-variant italic">Ingen ejerselskabsdata fundet.</p>';
+  }
+
+  // ── Section 03 ────────────────────────────────────────────────────────
+  if (s03.beskrivelse) {
+    document.getElementById('rv-s03-desc').textContent = s03.beskrivelse;
+    document.getElementById('rv-s03-desc-wrap').classList.remove('hidden');
+  }
+  // Visuelt ejerskabstræ (fra CVR-data)
+  const koncernRaw = data.cvr_data && data.cvr_data.koncern_struktur;
+  if (koncernRaw && (koncernRaw.ejere || []).length) {
+    document.getElementById('rv-koncern-tree').innerHTML = renderKoncernTree(koncernRaw);
+    document.getElementById('rv-koncern-tree-wrap').classList.remove('hidden');
+  } else if (s03.koncernkort && s03.koncernkort.length) {
+    // Fallback: AI-genereret tabelformat
+    document.getElementById('rv-koncernkort').innerHTML = s03.koncernkort.map((item, i) => `
+      <tr class="${i%2===1?'bg-surface-container-low/60':''}">
+        <td class="px-4 py-3 text-xs text-on-surface-variant font-mono">${esc(String(item.niveau ?? ''))}</td>
+        <td class="px-4 py-3 text-sm font-semibold text-on-surface">${esc(item.enhed ?? item.navn ?? '')}</td>
+        <td class="px-4 py-3 text-sm text-on-surface-variant">${esc(item.type ?? '')}</td>
+        <td class="px-4 py-3 text-sm text-on-surface-variant">${esc(item.ejerandel ?? '')}</td>
+        <td class="px-4 py-3 text-sm text-on-surface-variant">${esc(item.status ?? '')}</td>
+        <td class="px-4 py-3 text-xs text-on-surface-variant">${esc(item.bemaerkning ?? '')}</td>
+      </tr>`).join('');
+    document.getElementById('rv-koncernkort-wrap').classList.remove('hidden');
+  }
+  if (s03.revisor_anbefaling) {
+    document.getElementById('rv-s03-revisor').textContent = s03.revisor_anbefaling;
+    document.getElementById('rv-s03-revisor-wrap').classList.remove('hidden');
+  }
+
+  // ── Section 10: Historiske ændringer ─────────────────────────────────
+  const s10 = data.sektion_10 || {};
+  const historikRaw = data.cvr_data && data.cvr_data.historik;
+
+  // Brug AI-berignede data fra sektion_10 + CVR-rådata som supplement
+  const adresseSkift   = s10.adresse_skift  || (historikRaw && historikRaw.adresse_skift)  || [];
+  const direktørSkift  = s10.direktor_skift || (historikRaw && historikRaw.direktor_skift) || [];
+  const navnSkift      = s10.navn_skift     || (historikRaw && historikRaw.navn_skift)     || [];
+  const historikFlag   = s10.roede_flag     || (historikRaw && historikRaw.roede_flag)     || [];
+  const historikTotal  = adresseSkift.length + direktørSkift.length + navnSkift.length;
+
+  if (historikFlag.length) {
+    document.getElementById('rv-historik-flag').innerHTML = historikFlag.map(f =>
+      `<div class="flex items-start gap-2 text-sm text-red-700"><span class="flex-shrink-0">⚠</span><span>${esc(f)}</span></div>`
+    ).join('');
+    document.getElementById('rv-historik-flag-wrap').classList.remove('hidden');
+  }
+
+  function renderHistorikCards(items, containerId, wrapId, countId) {
+    if (!items.length) return;
+    document.getElementById(containerId).innerHTML = items.slice(0,8).map(e => {
+      const dato = (e.dato || '').slice(0,10);
+      const tekst = e.tekst || e.beskrivelse || '';
+      return `<div class="px-5 py-3 flex gap-3 items-start">
+        <span class="text-xs font-mono text-on-surface-variant flex-shrink-0 mt-0.5 w-24">${esc(dato)}</span>
+        <span class="text-xs text-on-surface leading-relaxed">${esc(tekst)}</span>
+      </div>`;
+    }).join('');
+    if (countId) document.getElementById(countId).textContent = items.length;
+    document.getElementById(wrapId).classList.remove('hidden');
+  }
+
+  renderHistorikCards(adresseSkift,  'rv-adresse-skift',  'rv-adresse-skift-wrap',  'rv-adresse-count');
+  renderHistorikCards(direktørSkift, 'rv-direktor-skift', 'rv-direktor-skift-wrap', 'rv-direktor-count');
+  renderHistorikCards(navnSkift,     'rv-navn-skift',     'rv-navn-skift-wrap',     null);
+
+  if (s10.samlet_vurdering) {
+    document.getElementById('rv-historik-vurdering').textContent = s10.samlet_vurdering;
+    document.getElementById('rv-historik-vurdering-wrap').classList.remove('hidden');
+  }
+
+  if (!historikTotal && !historikFlag.length) {
+    document.getElementById('rv-historik-empty').classList.remove('hidden');
+  }
+
+  // ── Section 11: Retssager & inkasso ──────────────────────────────────
+  const s11 = data.sektion_11 || {};
+  const retssagerRaw = data.cvr_data && data.cvr_data.retssager;
+
+  const s11Risiko  = s11.risiko || (retssagerRaw && retssagerRaw.risiko) || 'lav';
+  const s11Vurd    = s11.samlet_vurdering || (retssagerRaw && !retssagerRaw.resultater?.length
+                     ? 'Ingen fund i Statstidende.dk for dette CVR-nummer.'
+                     : '');
+  const s11Fund    = s11.fund || (retssagerRaw && retssagerRaw.resultater) || [];
+
+  const s11rc = riskClasses(s11Risiko);
+  const s11badge = document.getElementById('rv-s11-risiko-badge');
+  s11badge.textContent = s11rc.label;
+  s11badge.className = `flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider border ${s11rc.badge}`;
+  document.getElementById('rv-s11-vurdering').textContent = s11Vurd || (s11Fund.length ? `${s11Fund.length} meddelelse${s11Fund.length !== 1 ? 'r' : ''} fundet i Statstidende.dk.` : 'Ingen fund i Statstidende.dk.');
+
+  if (s11Fund.length) {
+    document.getElementById('rv-retssager-list').innerHTML = s11Fund.map(f => `
+      <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4 shadow-[0_2px_8px_-2px_rgba(43,52,55,0.06)]">
+        <div class="flex items-start justify-between gap-3 mb-1">
+          <span class="font-semibold text-sm text-on-surface leading-snug">${esc(f.overskrift || f.tekst || '')}</span>
+          ${f.dato ? `<span class="text-xs text-on-surface-variant flex-shrink-0 font-mono">${esc(f.dato)}</span>` : ''}
+        </div>
+        ${(f.beskrivelse || f.tekst) && (f.beskrivelse || f.tekst) !== f.overskrift ? `<p class="text-xs text-on-surface-variant leading-relaxed">${esc(f.beskrivelse || f.tekst)}</p>` : ''}
+        <div class="text-xs text-on-surface-variant/60 mt-1">${esc(f.kilde || 'Statstidende.dk')}</div>
+      </div>`).join('');
+    document.getElementById('rv-retssager-wrap').classList.remove('hidden');
+  }
+
+  // ── Section 04 ────────────────────────────────────────────────────────
+  const regnskabThead = document.getElementById('rv-regnskab-thead');
+  const regnskabTbody = document.getElementById('rv-regnskab-tbody');
+  const rows04 = s04.regnskabspost_tabel || [];
+
+  // Detect format: new = aar_kolonner + vaerdier[], old = regnskabsaar_seneste + seneste_aar/foregaaende_aar
+  const isNewFormat = Array.isArray(s04.aar_kolonner) && s04.aar_kolonner.length > 0;
+  const isOldFormat = !isNewFormat && rows04.length > 0 && rows04[0].seneste_aar !== undefined;
+
+  let aarKolonner = [];
+  if (isNewFormat) {
+    aarKolonner = s04.aar_kolonner.filter(Boolean);
+  } else if (isOldFormat) {
+    const isRealYear = v => v && /^\d{4}$/.test(String(v).trim());
+    aarKolonner = [
+      isRealYear(s04.regnskabsaar_seneste)    ? s04.regnskabsaar_seneste    : 'Seneste år',
+      isRealYear(s04.regnskabsaar_foregaaende) ? s04.regnskabsaar_foregaaende : 'Foregående år',
+    ];
+  }
+
+  if (aarKolonner.length) {
+    regnskabThead.innerHTML = `<tr class="bg-surface-container-low text-left">
+      <th class="px-6 py-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Regnskabspost</th>
+      ${aarKolonner.map((yr, i) => `
+        <th class="px-5 py-4 text-xs font-bold uppercase tracking-widest text-right ${i === 0 ? 'text-primary' : 'text-on-surface-variant'}">${esc(String(yr))}</th>
+      `).join('')}
+      <th class="px-4 py-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant text-center">Trend</th>
+    </tr>`;
+  }
+
+  if (rows04.length && aarKolonner.length) {
+    const cols = aarKolonner.length;
+    regnskabTbody.innerHTML = rows04.map((row, i) => {
+      // Normalise to vaerdier[] regardless of format
+      let vals;
+      if (Array.isArray(row.vaerdier)) {
+        vals = row.vaerdier;
+      } else {
+        vals = [row.seneste_aar ?? null, row.foregaaende_aar ?? null];
+      }
+
+      // Trend: compare latest vs previous numeric value
+      const num = s => parseFloat(String(s || '').replace(/[^0-9,.-]/g, '').replace(',', '.'));
+      const v0 = num(vals[0]), v1 = num(vals[1]);
+      const trend = (!isNaN(v0) && !isNaN(v1) && v1 !== 0)
+        ? (v0 > v1 ? '↑' : v0 < v1 ? '↓' : '—') : '';
+      const trendClass = trend === '↑' ? 'text-green-700 font-bold' : trend === '↓' ? 'text-red-600 font-bold' : 'text-on-surface-variant';
+
+      return `
+        <tr class="${i % 2 === 1 ? 'bg-surface-container-low/60' : ''}">
+          <td class="px-6 py-3 font-medium text-on-surface text-sm">${esc(row.post || '')}</td>
+          ${Array.from({length: cols}, (_, ci) => {
+            const val = vals[ci] != null && vals[ci] !== '' ? vals[ci] : '—';
+            return `<td class="px-5 py-3 text-right font-mono text-sm ${ci === 0 ? 'text-on-surface font-semibold' : 'text-on-surface-variant'}">${esc(String(val))}</td>`;
+          }).join('')}
+          <td class="px-4 py-3 text-center text-sm ${trendClass}">${trend || '—'}</td>
+        </tr>`;
+    }).join('');
+  } else {
+    regnskabTbody.innerHTML = `<tr><td colspan="${aarKolonner.length + 2}" class="px-6 py-4 text-sm text-on-surface-variant italic">Ingen regnskabsdata tilgængeligt</td></tr>`;
+  }
+  if (s04.finansiel_analyse) {
+    document.getElementById('rv-s04-analyse').textContent = s04.finansiel_analyse;
+    document.getElementById('rv-s04-analyse-wrap').classList.remove('hidden');
+  }
+  if (s04.noegletal_tabel && s04.noegletal_tabel.length) {
+    const noegletalEl = document.getElementById('rv-noegletal');
+    const selskabNavnS04 = meta.selskabsnavn || s01.selskabsnavn || 'Selskab';
+    noegletalEl.innerHTML = `
+      <thead>
+        <tr class="border-b border-outline-variant/20">
+          <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-widest text-on-surface-variant">Nøgletal</th>
+          <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-widest text-on-surface-variant">${esc(selskabNavnS04)}</th>
+          <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-widest text-on-surface-variant">Branchemedian</th>
+          <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-widest text-on-surface-variant">Vurdering</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-surface-container-low">
+        ${s04.noegletal_tabel.map((n, i) => {
+          const rc = riskClasses((n.vurdering || '').toLowerCase());
+          return `<tr class="${i%2===1?'bg-surface-container-low/60':''}">
+            <td class="px-6 py-3 text-sm font-semibold text-on-surface">${esc(String(n.noegletal ?? ''))}</td>
+            <td class="px-6 py-3 text-sm text-on-surface-variant">${esc(String(n.selskab ?? '—'))}</td>
+            <td class="px-6 py-3 text-sm text-on-surface-variant">${esc(String(n.branche_median ?? '—'))}</td>
+            <td class="px-6 py-3 text-sm"><span class="px-2 py-0.5 rounded-full text-xs font-bold ${rc.badge}">${esc(rc.label)}</span></td>
+          </tr>`;
+        }).join('')}
+      </tbody>`;
+    document.getElementById('rv-noegletal-wrap').classList.remove('hidden');
+  }
+
+  // ── Section 05 ────────────────────────────────────────────────────────
+  const kreditEl = document.getElementById('rv-kreditpunkter');
+  if (s05.kreditpunkter && s05.kreditpunkter.length) {
+    kreditEl.innerHTML = s05.kreditpunkter.map(k => {
+      const isObj = typeof k === 'object';
+      const text  = isObj ? (k.punkt || k.tekst || k.beskrivelse || JSON.stringify(k)) : String(k);
+      const risk  = isObj ? (k.risiko || k.vurdering || '') : '';
+      const krc   = riskClasses(risk);
+      return `
+        <div class="flex items-start gap-3 py-2.5 border-b border-outline-variant/10">
+          <span class="material-symbols-outlined text-sm text-on-surface-variant mt-0.5">chevron_right</span>
+          <span class="text-sm text-on-surface flex-1">${esc(text)}</span>
+          ${risk ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border flex-shrink-0 ${krc.badge}">${krc.label}</span>` : ''}
+        </div>`;
+    }).join('');
+  } else {
+    kreditEl.innerHTML = '<p class="text-sm text-on-surface-variant italic">Ingen kreditdata.</p>';
+  }
+  if (s05.kreditnote) {
+    document.getElementById('rv-kreditnote').textContent = s05.kreditnote;
+    document.getElementById('rv-kreditnote-wrap').classList.remove('hidden');
+  }
+
+  // ── Section 06 ────────────────────────────────────────────────────────
+  const soegerEl = document.getElementById('rv-soegeresultater');
+  if (s06.soegeresultater && s06.soegeresultater.length) {
+    soegerEl.innerHTML = s06.soegeresultater.map(r => {
+      const isObj = typeof r === 'object';
+      const titel = isObj ? (r.titel || r.overskrift || r.title || '') : String(r);
+      const kilde = isObj ? (r.kilde || r.source || '') : '';
+      const dato  = isObj ? (r.dato || r.date || '') : '';
+      const uddrag = isObj ? (r.uddrag || r.beskrivelse || r.summary || '') : '';
+      const url   = isObj ? (r.url || r.link || '') : '';
+      return `
+        <div class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/10 shadow-[0_4px_16px_-4px_rgba(43,52,55,0.06)] flex flex-col gap-2">
+          ${dato || kilde ? `<div class="text-xs text-on-surface-variant">${[esc(kilde), esc(dato)].filter(Boolean).join(' · ')}</div>` : ''}
+          <div class="font-semibold text-sm text-on-surface leading-snug">${esc(titel)}</div>
+          ${uddrag ? `<p class="text-xs text-on-surface-variant leading-relaxed">${esc(uddrag)}</p>` : ''}
+          ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener" class="text-xs text-primary hover:underline mt-1">Læs mere →</a>` : ''}
+        </div>`;
+    }).join('');
+  } else {
+    soegerEl.innerHTML = '<p class="text-sm text-on-surface-variant italic col-span-2">Ingen søgeresultater fundet.</p>';
+  }
+  if (s06.positive_observationer) {
+    document.getElementById('rv-positive-obs').textContent = s06.positive_observationer;
+    document.getElementById('rv-positive-obs-wrap').classList.remove('hidden');
+  }
+
+  // ── Trustpilot ────────────────────────────────────────────────────────
+  const tp = s06.trustpilot || {};
+  if (tp.rating || tp.resumé || (tp.udvalgte_anmeldelser && tp.udvalgte_anmeldelser.length)) {
+    // Rating badge farve
+    const tpRating = parseFloat(tp.rating) || 0;
+    const tpBadgeClass = tpRating >= 4 ? 'bg-green-100 text-green-800'
+                       : tpRating >= 3 ? 'bg-yellow-100 text-yellow-800'
+                       : tpRating > 0  ? 'bg-red-100 text-red-800'
+                       : 'bg-surface-container text-on-surface-variant';
+    const tpBadgeEl = document.getElementById('rv-tp-rating-badge');
+    tpBadgeEl.textContent = tp.vurdering ? tp.vurdering.charAt(0).toUpperCase() + tp.vurdering.slice(1) : '';
+    tpBadgeEl.className = `px-2 py-0.5 rounded-full text-xs font-bold ${tpBadgeClass}`;
+
+    document.getElementById('rv-tp-score').textContent = tp.rating ? `${tp.rating}/5` : '—';
+    document.getElementById('rv-tp-antal').textContent = tp.antal ? `${tp.antal} anmeldelser` : '';
+    document.getElementById('rv-tp-resume').textContent = tp.resumé || '';
+
+    if (tp.url) {
+      const linkEl = document.getElementById('rv-tp-link');
+      linkEl.href = tp.url;
+      linkEl.classList.remove('hidden');
+    }
+
+    // Røde flag
+    if (tp.roede_flag && tp.roede_flag.length) {
+      const flagWrap = document.getElementById('rv-tp-flag-wrap');
+      flagWrap.innerHTML = tp.roede_flag.map(f =>
+        `<div class="flex items-start gap-2 text-sm text-red-700">
+          <span class="material-symbols-outlined text-sm mt-0.5 flex-shrink-0">flag</span>
+          <span>${esc(f)}</span>
+        </div>`
+      ).join('');
+      flagWrap.classList.remove('hidden');
+    }
+
+    // Udvalgte anmeldelser
+    const reviewsEl = document.getElementById('rv-tp-reviews');
+    if (tp.udvalgte_anmeldelser && tp.udvalgte_anmeldelser.length) {
+      const stars = n => '★'.repeat(Math.min(5, Math.max(0, parseInt(n) || 0))) + '☆'.repeat(5 - Math.min(5, Math.max(0, parseInt(n) || 0)));
+      reviewsEl.innerHTML = tp.udvalgte_anmeldelser.map(r => `
+        <div class="bg-surface-container-low rounded-xl p-4 space-y-1">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-yellow-500 text-sm tracking-tight">${stars(r.stjerner)}</span>
+            <span class="text-xs text-on-surface-variant">${esc(r.dato || '')}</span>
+          </div>
+          ${r.titel ? `<div class="text-sm font-semibold text-on-surface">${esc(r.titel)}</div>` : ''}
+          ${r.tekst ? `<p class="text-sm text-on-surface-variant leading-relaxed">${esc(r.tekst)}</p>` : ''}
+        </div>`).join('');
+      reviewsEl.classList.remove('hidden');
+    }
+
+    document.getElementById('rv-trustpilot-wrap').classList.remove('hidden');
+  }
+
+  // ── Section 07 ────────────────────────────────────────────────────────
+  if (s07.markedssituation) {
+    document.getElementById('rv-s07-marked').textContent = s07.markedssituation;
+    document.getElementById('rv-s07-marked-wrap').classList.remove('hidden');
+  }
+  if (s07.benchmarking && s07.benchmarking.length) {
+    const benchEl = document.querySelector('#rv-benchmarking tbody');
+    // Kolonneoverskrift: brug selskabets rigtige navn fra rapporten
+    const selskabNavn = s07.selskab_navn || meta.selskabsnavn || s01.selskabsnavn || 'Selskab';
+    const thead = document.querySelector('#rv-benchmarking') || document.getElementById('rv-benchmarking');
+    // Indsæt thead med korrekte kolonneoverskrifter
+    thead.innerHTML = `
+      <thead>
+        <tr class="border-b border-outline-variant/20">
+          <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-widest text-on-surface-variant">Nøgletal</th>
+          <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-widest text-on-surface-variant">Branchemedian</th>
+          <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-widest text-on-surface-variant">${esc(selskabNavn)}</th>
+          <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-widest text-on-surface-variant">Vurdering</th>
+        </tr>
+      </thead>
+      <tbody class="zebra-table divide-y divide-surface-container-low"></tbody>`;
+    const benchBody = thead.querySelector('tbody');
+    benchBody.innerHTML = s07.benchmarking.map((row, i) => {
+      if (typeof row !== 'object') return `<tr class="${i%2===1?'bg-surface-container-low':''}"><td class="px-6 py-3 text-sm text-on-surface" colspan="4">${esc(String(row))}</td></tr>`;
+      const rc = riskClasses((row.vurdering || '').toLowerCase());
+      return `<tr class="${i%2===1?'bg-surface-container-low':''}">
+        <td class="px-6 py-3 text-sm font-semibold text-on-surface">${esc(String(row.noegletal ?? ''))}</td>
+        <td class="px-6 py-3 text-sm text-on-surface-variant">${esc(String(row.branche_median ?? '—'))}</td>
+        <td class="px-6 py-3 text-sm text-on-surface-variant">${esc(String(row.selskab ?? '—'))}</td>
+        <td class="px-6 py-3 text-sm"><span class="px-2 py-0.5 rounded-full text-xs font-bold ${rc.badge}">${esc(rc.label)}</span></td>
+      </tr>`;
+    }).join('');
+    document.getElementById('rv-benchmarking-wrap').classList.remove('hidden');
+  }
+  if (s07.benchmarking_note) {
+    document.getElementById('rv-benchmarking-note').textContent = s07.benchmarking_note;
+    document.getElementById('rv-benchmarking-note-wrap').classList.remove('hidden');
+  }
+
+  // ── Section 08 ────────────────────────────────────────────────────────
+  const profilData = s08.ledelsesprofiler || s02.ledelsesprofiler || [];
+  const lederEl = document.getElementById('rv-ledelsesprofiler');
+  if (profilData.length) {
+    lederEl.innerHTML = profilData.map(p => `
+      <div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/10 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)]">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="w-12 h-12 rounded-xl bg-primary-container flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-primary">person</span>
+          </div>
+          <div>
+            <div class="font-bold text-on-surface">${esc(p.navn)}</div>
+            <div class="text-xs text-on-surface-variant mt-0.5">${esc(p.titel)}</div>
+          </div>
+        </div>
+        ${p.beskrivelse ? renderBulletList(p.beskrivelse) : ''}
+      </div>`).join('');
+  } else {
+    lederEl.innerHTML = '<p class="text-sm text-on-surface-variant italic col-span-2">Ingen ledelsesprofiler tilgængelige.</p>';
+  }
+  const s08AnbEl = document.getElementById('rv-s08-anbefaling');
+  const s08AnbText = document.getElementById('rv-s08-anbefaling-text');
+  if (s08.anbefaling) {
+    s08AnbText.textContent = s08.anbefaling;
+    s08AnbEl.classList.remove('hidden');
+  } else {
+    s08AnbText.textContent = '';
+    s08AnbEl.classList.add('hidden');
+  }
+
+  // ── Section 09 ────────────────────────────────────────────────────────
+  const s09rc = riskClasses(s09.risiko_niveau);
+  const s09badge = document.getElementById('rv-s09-risk-badge');
+  s09badge.textContent = s09rc.label;
+  s09badge.className = `px-5 py-2.5 rounded-full text-base font-bold uppercase tracking-widest border ${s09rc.badge}`;
+  document.getElementById('rv-s09-vurdering').textContent = s09.samlet_vurdering || '';
+
+  const risikohandEl = document.getElementById('rv-risikohandlinger');
+  if (s09.risikohandlinger && s09.risikohandlinger.length) {
+    risikohandEl.innerHTML = s09.risikohandlinger.map(h => {
+      const isObj = typeof h === 'object';
+      const text  = isObj ? (h.handling || h.tekst || h.beskrivelse || JSON.stringify(h)) : String(h);
+      const risk  = isObj ? (h.risiko || h.niveau || '') : '';
+      const hrc   = riskClasses(risk);
+      return `
+        <div class="flex items-start gap-3 bg-surface-container-lowest rounded-xl px-5 py-4 border border-outline-variant/10 shadow-[0_4px_16px_-4px_rgba(43,52,55,0.04)]">
+          <span class="material-symbols-outlined text-sm text-on-surface-variant mt-0.5 flex-shrink-0">task_alt</span>
+          <span class="text-sm text-on-surface flex-1">${esc(text)}</span>
+          ${risk ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border flex-shrink-0 ${hrc.badge}">${hrc.label}</span>` : ''}
+        </div>`;
+    }).join('');
+    document.getElementById('rv-risikohandlinger-wrap').classList.remove('hidden');
+  }
+
+  if (s09.ansvarsfraskrivelse) {
+    document.getElementById('rv-ansvarsfraskrivelse').textContent = s09.ansvarsfraskrivelse;
+    document.getElementById('rv-ansvarsfraskrivelse-wrap').classList.remove('hidden');
+  }
+
+  // Scroll to top
+  const scrollArea = document.getElementById('report-scroll-area');
+  if (scrollArea) scrollArea.scrollTop = 0;
+
+  // Init intersection observer for section nav
+  initSectionObserver();
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+/**
+ * Bygger et visuelt ejerskabstræ fra CVR's koncern_struktur objekt.
+ * Ejerne vises OVER selskabet (top-down: UBO øverst, selskabet nederst).
+ */
+function renderKoncernTree(node, depth) {
+  if (!node) return '';
+  depth = depth || 0;
+
+  const isMain = depth === 0;
+  const isCompany = node.type && node.type !== 'Person' && node.type !== 'PERSON';
+  const statusOk  = !node.status || node.status === 'NORMAL' || node.status === '—';
+
+  const typeBadge = isCompany
+    ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-primary-container/40 text-primary font-bold">${esc(node.type || 'Selskab')}</span>`
+    : `<span class="text-[10px] px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant font-bold">Person</span>`;
+
+  const statusBadge = !statusOk
+    ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold">${esc(node.status)}</span>`
+    : '';
+
+  const cvrText = node.cvr ? `<span class="text-[10px] font-mono text-on-surface-variant">CVR ${esc(node.cvr)}</span>` : '';
+
+  const nodeEl = `
+    <div class="flex flex-col items-center">
+      <div class="${isMain
+        ? 'bg-primary/10 border-2 border-primary/30 rounded-xl px-5 py-3 shadow'
+        : 'bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-4 py-2.5 shadow-sm'
+      } flex flex-col items-center gap-1 min-w-[140px] max-w-[200px] text-center">
+        <div class="flex items-center gap-1.5 flex-wrap justify-center">
+          ${typeBadge}
+          ${statusBadge}
+        </div>
+        <div class="font-bold text-sm text-on-surface leading-snug">${esc(node.navn || '—')}</div>
+        ${cvrText}
+        ${node.ejerandel && !isMain ? `<div class="text-xs font-semibold text-primary mt-0.5">${esc(node.ejerandel)}</div>` : ''}
+      </div>
+    </div>`;
+
+  // Har selskabet ejere?
+  const ejere = node.ejere || [];
+  if (!ejere.length) return nodeEl;
+
+  const connector = `
+    <div class="flex flex-col items-center py-1">
+      <div class="w-px h-5 bg-outline-variant/40"></div>
+    </div>`;
+
+  const ejereHTML = ejere.length === 1
+    ? `${connector}${renderKoncernTree(ejere[0], depth + 1)}`
+    : `
+      ${connector}
+      <div class="flex items-start gap-4 justify-center">
+        ${ejere.map(e => `<div class="flex flex-col items-center">${renderKoncernTree(e, depth + 1)}</div>`).join(`
+          <div class="w-px self-stretch border-l border-dashed border-outline-variant/30 mx-2 mt-12"></div>`)}
+      </div>`;
+
+  // Ejere vises OVER selskabet: render ejere først, derefter connector, derefter selskabet
+  return `<div class="flex flex-col items-center">${ejereHTML}${connector}${nodeEl}</div>`;
+}
+
+function renderBulletList(text) {
+  if (!text) return '';
+  const lines = String(text).split(/\n|·|•/).map(l => l.trim()).filter(Boolean);
+  if (lines.length <= 1) return `<p class="text-sm text-on-surface leading-relaxed">${esc(text)}</p>`;
+  return '<ul class="space-y-1.5 mt-1">' + lines.map(l =>
+    `<li class="flex items-start gap-2 text-sm text-on-surface"><span class="material-symbols-outlined text-xs text-on-surface-variant mt-1 flex-shrink-0">fiber_manual_record</span>${esc(l)}</li>`
+  ).join('') + '</ul>';
+}
+
+function renderKoncernkort(items, depth) {
+  depth = depth || 0;
+  if (!items || !items.length) return '';
+
+  const rows = items.map(item => {
+    const isObj = typeof item === 'object' && item !== null;
+
+    let enhed = '', ejerandel = '', niveau = '', bemærk = '';
+    if (isObj) {
+      enhed     = item.enhed || item.navn || item.name || item.selskab || '';
+      ejerandel = item.ejerandel || '';
+      niveau    = item.niveau || '';
+      bemærk    = item.bemaerkning || '';
+    } else {
+      enhed = String(item);
+    }
+
+    const children = isObj ? (item.datterselskaber || item.children || item.underselskaber || []) : [];
+
+    const indent = depth * 24;
+    const connector = depth === 0
+      ? `<span class="text-primary font-bold mr-1">▸</span>`
+      : `<span class="text-outline-variant mr-1">└─</span>`;
+
+    const niveauBadge = niveau
+      ? `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-surface-container text-on-surface-variant uppercase tracking-wider">${esc(niveau)}</span>`
+      : '';
+    const ejerandelBadge = ejerandel
+      ? `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary-container/40 text-primary">${esc(ejerandel)}</span>`
+      : '';
+    const bemærkSpan = bemærk
+      ? `<span class="ml-2 text-on-surface-variant text-[11px]">— ${esc(bemærk)}</span>`
+      : '';
+
+    return `
+      <div class="flex items-start py-1.5 border-b border-outline-variant/20 last:border-0" style="padding-left:${indent}px">
+        <span class="flex-shrink-0 mt-0.5">${connector}</span>
+        <span class="font-medium text-on-surface text-xs">${esc(enhed)}</span>
+        ${ejerandelBadge}${niveauBadge}${bemærkSpan}
+      </div>
+      ${renderKoncernkort(children, depth + 1)}
+    `;
+  });
+
+  return rows.join('');
+}
+
+// ── Section observer (active nav highlight) ────────────────────────────────
+let sectionObserver = null;
+function initSectionObserver() {
+  if (sectionObserver) sectionObserver.disconnect();
+  const scrollArea = document.getElementById('report-scroll-area');
+  if (!scrollArea) return;
+  const sections = ['s01','s02','s03','s10','s11','s04','s05','s06','s07','s08','s09'];
+  sectionObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const id = entry.target.id.replace('anchor-', '');
+      const navItems = document.querySelectorAll('.report-nav-item');
+      navItems.forEach((item, i) => {
+        const sId = sections[i];
+        if (sId === id) {
+          if (entry.isIntersecting) item.classList.add('active-section');
+        } else {
+          if (entry.isIntersecting) item.classList.remove('active-section');
+        }
+      });
+    });
+  }, { root: scrollArea, threshold: 0.2, rootMargin: '-10% 0px -70% 0px' });
+  sections.forEach(s => {
+    const el = document.getElementById(`anchor-${s}`);
+    if (el) sectionObserver.observe(el);
+  });
+}
+
+function scrollToSection(sId) {
+  const scrollArea = document.getElementById('report-scroll-area');
+  const el = document.getElementById(`anchor-${sId}`);
+  if (el && scrollArea) {
+    scrollArea.scrollTo({ top: el.offsetTop - 32, behavior: 'smooth' });
+  }
+}
+
+// ── Report display (legacy reports view) ──────────────────────────────────
+function showReport(entry) {
+  document.getElementById('no-reports-state').classList.add('hidden');
+  document.getElementById('report-result-state').classList.remove('hidden');
+
+  const name = entry.name || entry.cvr;
+  document.getElementById('report-company-name').textContent = name;
+  document.getElementById('report-meta-text').textContent = `CVR ${entry.cvr} · Genereret ${entry.date} · Fortroligt dokument`;
+
+  const riskLevel = (entry.risk || 'ukendt').toLowerCase();
+  const rc = riskClasses(riskLevel);
+  document.getElementById('risk-score').textContent = rc.label;
+  document.getElementById('risk-label').textContent = `${rc.label} risikokategori`;
+  document.getElementById('risk-label-row').className = `mt-3 flex items-center gap-2 font-bold text-sm ${riskLevel === 'høj' ? 'text-red-600' : riskLevel === 'middel' ? 'text-orange-600' : 'text-green-600'}`;
+
+  // Risk cards from report data
+  const grid = document.getElementById('risk-cards');
+  const reportData = entry.reportData;
+  if (reportData && reportData.risiko_oversigt && reportData.risiko_oversigt.length) {
+    grid.innerHTML = reportData.risiko_oversigt.slice(0,4).map(r => {
+      const orc = riskClasses(r.vurdering);
+      return `
+        <div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/10 shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)]">
+          <div class="flex justify-between items-start mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">${esc(r.indikator)}</span>
+            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${orc.badge}">${orc.label}</span>
+          </div>
+          <p class="text-sm text-on-surface">${esc(r.status_tekst)}</p>
+        </div>`;
+    }).join('');
+  } else {
+    const icons  = ['newspaper', 'gavel', 'verified_user', 'trending_down'];
+    const labels = ['Presse & Medier', 'Konkurs / Betalingsstandsning', 'UBO-registrering', 'Finansiel Trend'];
+    const values = ['Ingen fundet', 'Ingen', 'Registreret', 'Stabil'];
+    const colors = ['bg-secondary-container text-on-secondary-container', 'bg-tertiary-container text-on-tertiary-container', 'bg-primary-container text-on-primary-container', 'bg-surface-container-high text-primary'];
+    grid.innerHTML = labels.map((lbl, i) => `
+      <div class="bg-surface-container-lowest p-6 rounded-xl border shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)]" style="border-color:rgba(171,179,183,0.05)">
+        <div class="flex justify-between items-start mb-5">
+          <div class="p-3 ${colors[i]} rounded-lg"><span class="material-symbols-outlined">${icons[i]}</span></div>
+          <span class="text-xs font-bold text-on-surface-variant">${values[i]}</span>
+        </div>
+        <h4 class="font-bold text-base mb-1">${lbl}</h4>
+        <div class="h-1 bg-surface-container-low w-full rounded-full mt-3"><div class="h-full bg-primary rounded-full" style="width:${[15, 5, 90, 60][i]}%"></div></div>
+      </div>`).join('');
+  }
+
+  refreshReportsTable();
+}
+
+function refreshReports() {
+  if (state.reports.length === 0) {
+    document.getElementById('no-reports-state').classList.remove('hidden');
+    document.getElementById('report-result-state').classList.add('hidden');
+  } else {
+    const latest = state.reports[0];
+    showReport(latest);
+  }
+}
+
+function refreshReportsTable() {
+  const tbody = document.getElementById('reports-history-table');
+  if (state.reports.length === 0) { tbody.innerHTML = ''; return; }
+  tbody.innerHTML = state.reports.map((r, i) => {
+    const riskLevel = (r.risk || 'ukendt').toLowerCase();
+    const rc = riskClasses(riskLevel);
+    return `
+      <tr class="bg-surface-container-lowest group cursor-pointer hover:translate-x-1 transition-all" onclick="${r.reportData ? `loadHistoryReport(${i})` : ''}">
+        <td class="py-5 px-6 font-bold text-primary rounded-l-xl">${esc(r.name || r.cvr)}</td>
+        <td class="py-5 px-6 text-on-surface font-mono text-sm">${esc(r.cvr)}</td>
+        <td class="py-5 px-6 text-on-surface-variant italic text-sm">${esc(r.date)}</td>
+        <td class="py-5 px-6 rounded-r-xl">
+          <span class="px-3 py-1 border rounded-full text-[10px] font-bold uppercase tracking-tighter ${rc.badge}">${rc.label}</span>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function loadHistoryReport(index) {
+  const entry = state.reports[index];
+  if (!entry || !entry.reportData) return;
+  state.currentReport = entry.reportData;
+  renderReport(entry.reportData);
+  navigate('report');
+}
+
+function refreshDashboard() {
+  const n = state.reports.length;
+  document.getElementById('stat-total').textContent = n || '0';
+  const thisMonth = state.reports.filter(r => {
+    const d = r.date.split('.');
+    const now = new Date();
+    return parseInt(d[1]) === (now.getMonth() + 1) && parseInt(d[2]?.trim()) === now.getFullYear();
+  }).length;
+  document.getElementById('stat-month').textContent = thisMonth || '0';
+  const highRisk = state.reports.filter(r => (r.risk || '').toLowerCase() === 'høj').length;
+  document.getElementById('stat-highrisk').textContent = highRisk || '0';
+
+  const tbody = document.getElementById('recent-table');
+  if (n === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" class="px-10 py-12 text-center text-on-surface-variant"><span class="material-symbols-outlined text-4xl block mb-3 opacity-30">description</span>Ingen rapporter endnu — <button onclick="navigate('search')" class="text-primary font-semibold hover:underline">generer din første</button></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = state.reports.slice(0, 5).map(r => {
+    const riskLevel = (r.risk || 'ukendt').toLowerCase();
+    const rc = riskClasses(riskLevel);
+    return `
+      <tr class="hover:bg-surface-container-low transition-colors duration-200 cursor-pointer" onclick="${r.reportData ? `loadHistoryReport(${state.reports.indexOf(r)})` : `navigate('reports')`}">
+        <td class="px-10 py-5"><span class="font-bold text-on-surface">${esc(r.name || r.cvr)}</span></td>
+        <td class="px-10 py-5 text-sm font-mono text-on-surface">${esc(r.cvr)}</td>
+        <td class="px-10 py-5 text-sm text-on-surface">${esc(r.date)}</td>
+        <td class="px-10 py-5 text-right"><span class="px-4 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${rc.badge}">${rc.label}</span></td>
+      </tr>`;
+  }).join('');
+}
+
+function addRecentLookup(cvr) {
+  const el = document.getElementById('recent-lookups');
+  const name = state.reports[0]?.name || cvr;
+  const li = document.createElement('li');
+  li.className = 'lookup-item flex items-start gap-3';
+  li.innerHTML = `<div class="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></div><div><p class="font-headline font-bold text-sm">${esc(name)}</p><p class="text-xs text-on-surface-variant mt-0.5">Lige nu · Due Diligence</p></div>`;
+  if (el.querySelector('.italic')) el.innerHTML = '';
+  el.prepend(li);
+}
+
+// ── Progress steps ─────────────────────────────────────────────────────────
+function resetSteps() {
+  document.querySelectorAll('.progress-step').forEach(s => {
+    s.querySelector('.step-icon').className = 'step-icon w-7 h-7 rounded-full border-2 border-outline-variant/40 flex items-center justify-center flex-shrink-0';
+    s.querySelector('.step-icon').innerHTML = '';
+    s.querySelector('span:last-child').className = 'text-sm text-on-surface-variant';
+  });
+}
+
+function setStep(idx, state_) {
+  const step = document.querySelector(`.progress-step[data-step="${idx}"]`);
+  if (!step) return;
+  const icon = step.querySelector('.step-icon');
+  const label = step.querySelector('span:last-child');
+  if (state_ === 'active') {
+    icon.className = 'step-icon w-7 h-7 rounded-full border-2 border-primary flex items-center justify-center flex-shrink-0';
+    icon.innerHTML = '<div style="width:10px;height:10px;border:2px solid #535f6f;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite"></div>';
+    label.className = 'text-sm text-on-surface font-semibold';
+  } else if (state_ === 'done') {
+    icon.className = 'step-icon w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0';
+    icon.innerHTML = '<span class="material-symbols-outlined text-on-primary text-sm">check</span>';
+    label.className = 'text-sm text-on-surface';
+  } else if (state_ === 'error') {
+    icon.className = 'step-icon w-7 h-7 rounded-full bg-error flex items-center justify-center flex-shrink-0';
+    icon.innerHTML = '<span class="material-symbols-outlined text-on-error text-sm">close</span>';
+    label.className = 'text-sm text-error font-semibold';
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Input filter ───────────────────────────────────────────────────────────
+document.getElementById('cvr-input').addEventListener('input', e => {
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 8);
+});
+document.getElementById('cvr-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startGenerate();
+});
+
+// ── Login ──────────────────────────────────────────────────────────────────
+async function submitLogin() {
+  const pw  = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+  if (!pw) return;
+  btn.disabled = true;
+  btn.textContent = 'Logger ind…';
+  err.classList.add('hidden');
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw }),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      throw new Error(d.detail || 'Forkert kodeord');
+    }
+    const data = await res.json();
+    _authToken = data.token;
+    localStorage.setItem('auth_token', _authToken);
+    document.getElementById('view-login').classList.add('hidden');
+    document.getElementById('main-layout').classList.remove('hidden');
+    await loadReportsFromServer();
+  } catch (e) {
+    err.textContent = e.message;
+    err.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Log ind';
+  }
+}
+
+async function checkAuth() {
+  try {
+    const res = await fetch('/api/auth/check');
+    const data = await res.json();
+    if (!data.requires_password) {
+      // No password set — show app directly
+      document.getElementById('view-login').classList.add('hidden');
+      document.getElementById('main-layout').classList.remove('hidden');
+      await loadReportsFromServer();
+      initTemplateStatus();
+      return;
+    }
+    // Check if we have a stored token that works
+    if (_authToken) {
+      const test = await fetch('/api/reports', { headers: { 'X-Auth-Token': _authToken } });
+      if (test.ok) {
+        document.getElementById('view-login').classList.add('hidden');
+        document.getElementById('main-layout').classList.remove('hidden');
+        await loadReportsFromServer();
+        initTemplateStatus();
+        return;
+      }
+    }
+    // Show login
+    document.getElementById('view-login').classList.remove('hidden');
+    document.getElementById('main-layout').classList.add('hidden');
+  } catch (e) {
+    document.getElementById('view-login').classList.remove('hidden');
+    document.getElementById('main-layout').classList.add('hidden');
+  }
+}
+
+async function loadReportsFromServer() {
+  try {
+    const res  = await _fetch('/api/reports');
+    if (!res.ok) return;
+    const list = await res.json();
+    const tbody = document.getElementById('recent-table');
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="4" class="px-10 py-12 text-center text-on-surface-variant">
+        <span class="material-symbols-outlined text-4xl block mb-3 opacity-30">description</span>
+        Ingen rapporter endnu — <button onclick="navigate('search')" class="text-primary font-semibold hover:underline">generer din første</button>
+      </td></tr>`;
+      document.getElementById('no-reports-state') && document.getElementById('no-reports-state').classList.add('hidden');
+      document.getElementById('reports-loaded-state') && document.getElementById('reports-loaded-state').classList.remove('hidden');
+      return;
+    }
+
+    const risikoColor = r => r === 'HØJ' ? 'bg-red-100 text-red-700' : r === 'MIDDEL' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
+
+    tbody.innerHTML = list.map(r => `
+      <tr class="border-b border-outline-variant/10 hover:bg-surface-container-low/40 cursor-pointer transition-colors" onclick="openSavedReport('${r.id}')">
+        <td class="px-6 py-4 font-semibold text-on-surface text-sm">${r.selskabsnavn}</td>
+        <td class="px-6 py-4 text-on-surface-variant text-sm font-mono">${r.cvr}</td>
+        <td class="px-6 py-4"><span class="px-2 py-0.5 rounded-full text-xs font-bold ${risikoColor(r.risiko)}">${r.risiko || '—'}</span></td>
+        <td class="px-6 py-4 text-on-surface-variant text-xs">${r.dato}</td>
+      </tr>`).join('');
+
+    document.getElementById('no-reports-state') && document.getElementById('no-reports-state').classList.add('hidden');
+    document.getElementById('reports-loaded-state') && document.getElementById('reports-loaded-state').classList.remove('hidden');
+  } catch (e) {
+    console.warn('Could not load reports:', e);
+  }
+}
+
+async function openSavedReport(reportId) {
+  try {
+    const res  = await _fetch(`/api/reports/${reportId}`);
+    if (!res.ok) throw new Error('Rapport ikke fundet');
+    const data = await res.json();
+    state.currentReport = data;
+    renderReport(data);
+    navigate('report');
+  } catch (e) {
+    alert(`Kunne ikke åbne rapport: ${e.message}`);
+  }
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+checkAuth();
+
+// Lazy-load placeholder list when <details> is opened
+document.addEventListener('toggle', e => {
+  if (e.target && e.target.querySelector && e.target.querySelector('#placeholder-list')) {
+    loadPlaceholders();
+  }
+}, true);
+</script>
+</body>
+</html>
