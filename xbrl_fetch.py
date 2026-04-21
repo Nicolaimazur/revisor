@@ -10,10 +10,16 @@ Returnerer samme dict-format som det gamle proff_data for bagudkompatibilitet.
 """
 
 import asyncio
+import logging
+import traceback
 from typing import Optional
 
 import httpx
 from lxml import etree
+
+log = logging.getLogger("xbrl_fetch")
+if not log.handlers:
+    logging.basicConfig(level=logging.INFO)
 
 
 DIST_URL = "https://distribution.virk.dk/offentliggoerelser/_search"
@@ -82,10 +88,13 @@ async def fetch_xbrl_data(cvr: str, max_years: int = 5) -> dict:
                 "size": 15,  # filter på type + evt. manglende XBRL → hent rigeligt
             }
             resp = await client.post(DIST_URL, json=query)
+            log.info("XBRL ES cvr=%s status=%s bytes=%s", cvr_int, resp.status_code, len(resp.content))
             if resp.status_code != 200:
+                log.warning("XBRL ES non-200 body=%s", resp.text[:400])
                 return {}
 
             hits = (resp.json().get("hits") or {}).get("hits") or []
+            log.info("XBRL ES cvr=%s hits=%s", cvr_int, len(hits))
             if not hits:
                 return {}
 
@@ -103,6 +112,7 @@ async def fetch_xbrl_data(cvr: str, max_years: int = 5) -> dict:
                             xbrl_urls.append(url)
                             break
 
+            log.info("XBRL cvr=%s xbrl_urls=%s sample=%s", cvr_int, len(xbrl_urls), xbrl_urls[:2])
             if not xbrl_urls:
                 return {}
 
@@ -124,6 +134,7 @@ async def fetch_xbrl_data(cvr: str, max_years: int = 5) -> dict:
                         if v is not None and years[aar].get(k) in (None, 0):
                             years[aar][k] = v
 
+            log.info("XBRL cvr=%s parsed_years=%s", cvr_int, sorted(years.keys(), reverse=True))
             if not years:
                 return {}
 
@@ -151,8 +162,8 @@ async def fetch_xbrl_data(cvr: str, max_years: int = 5) -> dict:
                 "seneste_aar": seneste,
                 "kilde":       "erhvervsstyrelsen",
             }
-    except Exception:
-        # Hellere ingen data end en crash — downstream falder tilbage til virk.dk nøgletal
+    except Exception as e:
+        log.error("XBRL fetch cvr=%s fejlede: %s\n%s", cvr, e, traceback.format_exc())
         return {}
 
 
