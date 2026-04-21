@@ -10,6 +10,8 @@ from typing import Optional
 from urllib.parse import quote as _url_quote
 from playwright.async_api import async_playwright
 
+from xbrl_fetch import fetch_xbrl_data
+
 GATEWAY_URL = (
     "https://datacvr.virk.dk/gateway/virksomhed/hentVirksomhed"
     "?cvrnummer={cvr}&locale=da"
@@ -990,9 +992,9 @@ async def fetch_cvr_data(cvr: str) -> dict:
                         except Exception:
                             person_risiko.append({"navn": navn, "enhed_id": enhed_id, "konkurser": [], "aktive_selskaber": []})
 
-            # ── Proff.dk financial summary ────────────────────────────────────
+            # ── Erhvervsstyrelsens XBRL-register (erstatter proff.dk) ────────
             try:
-                proff_data = await _fetch_proff_data(page, cvr_clean)
+                proff_data = await fetch_xbrl_data(cvr_clean)
             except Exception:
                 proff_data = {}
 
@@ -1322,10 +1324,12 @@ def _normalize(
                 "kilde":       "virk.dk",
             }
     else:
-        # Proff.dk leverede data — tjek om tallene er i DKK og konverter hvis nødvendigt
-        for reg in proff_data.get("regnskaber", []):
-            for felt in ("bruttofortjeneste", "resultat", "egenkapital", "balance", "ebit"):
-                reg[felt] = _to_tdkk(reg.get(felt))
+        # XBRL fra Erhvervsstyrelsen er allerede i t.DKK — spring konvertering over.
+        # Gælder kun legacy-kilder (proff.dk, manuel upload mv.)
+        if proff_data.get("kilde") != "erhvervsstyrelsen":
+            for reg in proff_data.get("regnskaber", []):
+                for felt in ("bruttofortjeneste", "resultat", "egenkapital", "balance", "ebit"):
+                    reg[felt] = _to_tdkk(reg.get(felt))
 
     return {
         "cvr":               stamdata.get("cvrnummer", cvr),

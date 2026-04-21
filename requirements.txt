@@ -8,3 +8,4 @@ playwright
 openpyxl
 python-multipart
 pdfplumber
+lxml
