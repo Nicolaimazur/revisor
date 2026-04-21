@@ -65,24 +65,21 @@ async def fetch_xbrl_data(cvr: str, max_years: int = 5) -> dict:
     except (TypeError, ValueError):
         return {}
 
-    headers = {"User-Agent": "RevisorDD/1.0 (+https://revisor-production.up.railway.app)"}
+    headers = {
+        "User-Agent": "RevisorDD/1.0 (+https://revisor-production.up.railway.app)",
+        "Accept":       "application/json; charset=utf-8",
+        "Content-Type": "application/json",
+    }
 
     try:
         async with httpx.AsyncClient(timeout=25.0, headers=headers) as client:
             # ── 1) Find seneste offentliggørelser for CVR ────────────────────
+            # Kun filter på cvrNummer — offentliggoerelsestype er text-felt
+            # og matcher ikke via term. Vi filtrerer i Python nedenfor.
             query = {
-                "query": {
-                    "bool": {
-                        "must": [
-                            {"term": {"cvrNummer": cvr_int}},
-                            {"term": {"offentliggoerelsestype": "regnskab"}},
-                        ]
-                    }
-                },
+                "query": {"bool": {"must": [{"term": {"cvrNummer": cvr_int}}]}},
                 "sort": [{"offentliggoerelsesTidspunkt": {"order": "desc"}}],
-                "size": 8,   # hent 8 for at være sikker på 5 unikke år
-                "_source": ["cvrNummer", "regnskab", "dokumenter",
-                            "offentliggoerelsesTidspunkt"],
+                "size": 15,  # filter på type + evt. manglende XBRL → hent rigeligt
             }
             resp = await client.post(DIST_URL, json=query)
             if resp.status_code != 200:
@@ -92,10 +89,12 @@ async def fetch_xbrl_data(cvr: str, max_years: int = 5) -> dict:
             if not hits:
                 return {}
 
-            # ── 2) Udtræk XBRL-URLs ──────────────────────────────────────────
+            # ── 2) Udtræk XBRL-URLs (kun fra regnskaber) ─────────────────────
             xbrl_urls = []
             for hit in hits:
                 src = hit.get("_source", {}) or {}
+                if (src.get("offentliggoerelsestype") or "").lower() != "regnskab":
+                    continue
                 for d in (src.get("dokumenter") or []):
                     mime = (d.get("dokumentMimeType") or "").lower()
                     if "xml" in mime:   # matcher "application/xml" og "text/xml"
