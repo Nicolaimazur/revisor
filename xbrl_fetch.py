@@ -22,7 +22,7 @@ if not log.handlers:
     logging.basicConfig(level=logging.INFO)
 
 
-DIST_URL = "https://distribution.virk.dk/offentliggoerelser/_search"
+DIST_URL = "http://distribution.virk.dk/offentliggoerelser/_search"
 
 # Mapping af XBRL element-navne (local-name, namespace-agnostisk)
 # til vores interne feltnavne. Værdier er altid i DKK i XBRL — konverteres til t.DKK.
@@ -78,7 +78,14 @@ async def fetch_xbrl_data(cvr: str, max_years: int = 5) -> dict:
     }
 
     try:
-        async with httpx.AsyncClient(timeout=25.0, headers=headers) as client:
+        # Lang timeout + tving IPv4 (distribution.virk.dk's IPv6 timer ud fra Railway)
+        transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0", retries=2)
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(60.0, connect=30.0),
+            headers=headers,
+            transport=transport,
+            follow_redirects=True,
+        ) as client:
             # ── 1) Find seneste offentliggørelser for CVR ────────────────────
             # Kun filter på cvrNummer — offentliggoerelsestype er text-felt
             # og matcher ikke via term. Vi filtrerer i Python nedenfor.
