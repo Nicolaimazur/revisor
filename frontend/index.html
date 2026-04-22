@@ -5,7 +5,9 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>ARCHITECT — Due Diligence Platform</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
   tailwind.config = {
@@ -13,81 +15,126 @@
     theme: {
       extend: {
         colors: {
-          "primary-container": "#d7e3f7",
-          "secondary-container": "#cbe7f5",
-          "on-tertiary-container": "#474d67",
-          "inverse-primary": "#d7e3f7",
-          "secondary": "#49636f",
-          "on-secondary": "#f2faff",
-          "surface-container-highest": "#dbe4e7",
-          "on-primary-fixed": "#34404f",
-          "tertiary-fixed": "#d5dcfb",
-          "surface-container-low": "#f1f4f6",
-          "tertiary-dim": "#4b526c",
-          "on-primary-fixed-variant": "#505c6c",
-          "on-tertiary": "#faf8ff",
-          "outline": "#737c7f",
-          "on-tertiary-fixed": "#343b53",
-          "surface-container-lowest": "#ffffff",
-          "primary-dim": "#475363",
-          "surface-bright": "#f8f9fa",
-          "surface-variant": "#dbe4e7",
-          "tertiary": "#575e78",
-          "on-secondary-fixed-variant": "#455f6b",
-          "primary": "#535f6f",
-          "error-container": "#fe8983",
-          "on-tertiary-fixed-variant": "#505771",
-          "outline-variant": "#abb3b7",
-          "tertiary-container": "#d5dcfb",
-          "background": "#f8f9fa",
-          "on-primary-container": "#475362",
-          "inverse-on-surface": "#9b9d9e",
-          "secondary-fixed": "#cbe7f5",
-          "on-surface": "#2b3437",
-          "on-primary": "#f5f8ff",
-          "surface-container-high": "#e3e9ec",
-          "primary-fixed-dim": "#c9d5e8",
-          "on-secondary-fixed": "#29434e",
-          "secondary-dim": "#3d5762",
-          "primary-fixed": "#d7e3f7",
-          "secondary-fixed-dim": "#bdd9e6",
-          "error-dim": "#4e0309",
-          "surface-dim": "#d1dce0",
-          "on-secondary-container": "#3c5561",
-          "surface": "#f8f9fa",
-          "inverse-surface": "#0c0f10",
-          "on-error-container": "#752121",
-          "error": "#9f403d",
-          "on-error": "#fff7f6",
-          "tertiary-fixed-dim": "#c7ceec",
-          "surface-tint": "#535f6f",
-          "on-surface-variant": "#586064",
-          "on-background": "#2b3437",
-          "surface-container": "#eaeff1"
+          /* Risika-inspired forest + cream palette */
+          "primary":                  "#0F3D34",   /* forest */
+          "primary-dim":              "#164C41",   /* forest hover */
+          "primary-fixed":            "#C8DCCB",   /* sage */
+          "primary-fixed-dim":        "#B0C9B4",
+          "primary-container":        "#C8DCCB",   /* sage */
+          "on-primary":               "#F4EEDB",   /* cream */
+          "on-primary-fixed":         "#0B1F1A",
+          "on-primary-fixed-variant": "#0F3D34",
+          "on-primary-container":     "#0F3D34",
+          "secondary":                "#2F6F5E",   /* moss */
+          "secondary-dim":            "#1F5446",
+          "secondary-fixed":          "#C8DCCB",
+          "secondary-fixed-dim":      "#B0C9B4",
+          "secondary-container":      "#D9E6DC",
+          "on-secondary":             "#F4EEDB",
+          "on-secondary-fixed":       "#0B1F1A",
+          "on-secondary-fixed-variant":"#0F3D34",
+          "on-secondary-container":   "#0F3D34",
+          "tertiary":                 "#E8C547",   /* accent yellow */
+          "tertiary-dim":             "#C9A936",
+          "tertiary-fixed":           "#F6E2A0",
+          "tertiary-fixed-dim":       "#EDD27A",
+          "tertiary-container":       "#F6E2A0",
+          "on-tertiary":              "#0B1F1A",
+          "on-tertiary-fixed":        "#3A2E00",
+          "on-tertiary-fixed-variant":"#5A4700",
+          "on-tertiary-container":    "#3A2E00",
+          "background":               "#F4EEDB",   /* cream */
+          "on-background":            "#0B1F1A",
+          "surface":                  "#F4EEDB",
+          "surface-bright":           "#FBF7EC",   /* paper */
+          "surface-dim":              "#EDE5CC",
+          "surface-variant":          "#EDE5CC",
+          "surface-tint":             "#0F3D34",
+          "surface-container-lowest": "#FFFFFF",
+          "surface-container-low":    "#FBF7EC",
+          "surface-container":        "#F4EEDB",
+          "surface-container-high":   "#EDE5CC",
+          "surface-container-highest":"#E5DFCB",
+          "on-surface":               "#0B1F1A",
+          "on-surface-variant":       "#5A6B65",
+          "inverse-surface":          "#0B1F1A",   /* ink — dark sidebar */
+          "inverse-on-surface":       "#D8D1BC",
+          "inverse-primary":          "#E8C547",
+          "outline":                  "#5A6B65",
+          "outline-variant":          "#D3CCB4",
+          "error":                    "#B0392B",
+          "error-dim":                "#8A2A1F",
+          "error-container":          "#F3D2CE",
+          "on-error":                 "#FFF7F6",
+          "on-error-container":       "#752121"
         },
         borderRadius: {
-          DEFAULT: "0.125rem",
-          lg: "0.25rem",
-          xl: "0.5rem",
-          full: "0.75rem"
+          DEFAULT: "0.375rem",
+          lg: "0.5rem",
+          xl: "0.75rem",
+          full: "0.875rem"
         },
         fontFamily: {
-          headline: ["Manrope"],
-          body: ["Inter"],
-          label: ["Inter"]
+          headline: ["Instrument Serif", "Georgia", "serif"],
+          body:     ["Geist", "system-ui", "sans-serif"],
+          label:    ["Geist", "system-ui", "sans-serif"],
+          mono:     ["Geist Mono", "ui-monospace", "monospace"]
         }
       }
     }
   }
 </script>
 <style>
+  /* ───────── Risika-inspired palette (single source for raw CSS) ───────── */
+  :root {
+    --ink:       #0B1F1A;
+    --forest:    #0F3D34;
+    --forest-2:  #164C41;
+    --moss:      #2F6F5E;
+    --sage:      #C8DCCB;
+    --cream:     #F4EEDB;
+    --cream-2:   #EDE5CC;
+    --paper:     #FBF7EC;
+    --line-soft: rgba(15,61,52,0.12);
+    --muted:     #5A6B65;
+    --accent:    #E8C547;
+  }
   .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-  body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #2b3437; min-height: max(884px, 100dvh); }
-  h1, h2, h3, h4 { font-family: 'Manrope', sans-serif; }
+  body {
+    font-family: 'Geist', system-ui, sans-serif;
+    font-feature-settings: "ss01","cv11";
+    background-color: var(--cream);
+    color: var(--ink);
+    min-height: max(884px, 100dvh);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  /* Still allow explicit sans-serif headings via utility */
+  h1.font-sans, h2.font-sans, h3.font-sans, h4.font-sans {
+    font-family: 'Geist', system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+  .font-serif { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; letter-spacing: -0.01em; }
+  .font-mono  { font-family: 'Geist Mono', ui-monospace, monospace; }
+
   .view { display: none; }
   .view.active { display: block; }
-  .nav-item.active { color: #2C3E50 !important; font-weight: 700; border-left: 4px solid #535f6f; padding-left: 1rem; }
-  .nav-item.active .nav-label { font-weight: 700; }
+  /* Sidebar nav-items live on the dark ink background, so active uses cream + gold accent */
+  .nav-item { color:#8A9C92 !important; }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color:#D8D1BC !important; }
+  .nav-item.active {
+    color: var(--cream) !important;
+    font-weight: 600;
+    background: rgba(232,197,71,0.10);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  .nav-item.active .material-symbols-outlined { color: var(--accent); }
+  .nav-item.active .nav-label { font-weight: 600; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .spin { animation: spin 0.9s linear infinite; }
   @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
@@ -98,19 +145,19 @@
   #view-report { display: none; }
   #view-report.active { display: flex; flex-direction: column; height: calc(100vh - 57px); overflow: hidden; }
   .report-layout { display: flex; flex: 1; overflow: hidden; min-height: 0; }
-  .report-sidenav { width: 220px; flex-shrink: 0; overflow-y: auto; border-right: 1px solid rgba(171,179,183,0.15); padding: 1.5rem 0; }
-  .report-content { flex: 1; overflow-y: auto; padding: 2.5rem 3rem; }
+  .report-sidenav { width: 220px; flex-shrink: 0; overflow-y: auto; border-right: 1px solid var(--line-soft); padding: 1.5rem 0; background: var(--paper); }
+  .report-content { flex: 1; overflow-y: auto; padding: 2.5rem 3rem; background: var(--cream); }
   @media (max-width: 768px) {
     #view-report.active { display: flex; height: auto; overflow: visible; }
     .report-layout { flex-direction: column; overflow: visible; }
-    .report-sidenav { width: 100%; overflow: hidden; border-right: none; border-bottom: 1px solid rgba(171,179,183,0.15); padding: 1rem 1.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .report-sidenav { width: 100%; overflow: hidden; border-right: none; border-bottom: 1px solid var(--line-soft); padding: 1rem 1.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .report-content { overflow: visible; padding: 1.5rem; }
   }
 
   /* Report section nav item */
-  .report-nav-item { display: flex; align-items: center; gap: 0.625rem; padding: 0.5rem 1.25rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #586064; cursor: pointer; transition: all 0.15s; white-space: nowrap; border-left: 3px solid transparent; }
-  .report-nav-item:hover { background: #f1f4f6; color: #2b3437; }
-  .report-nav-item.active-section { background: #f1f4f6; color: #535f6f; border-left-color: #535f6f; font-weight: 800; }
+  .report-nav-item { display: flex; align-items: center; gap: 0.625rem; padding: 0.5rem 1.25rem; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); cursor: pointer; transition: all 0.15s; white-space: nowrap; border-left: 3px solid transparent; }
+  .report-nav-item:hover { background: var(--cream-2); color: var(--ink); }
+  .report-nav-item.active-section { background: var(--cream-2); color: var(--forest); border-left-color: var(--accent); font-weight: 700; }
   .report-nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
   /* Section anchor scroll offset */
@@ -121,22 +168,37 @@
   #rv-koncern-tree .tree-node-wrap { display: flex; flex-direction: column; align-items: center; }
 
   /* Zebra table */
-  .zebra-table tr:nth-child(even) td { background: #f1f4f6; }
+  .zebra-table tr:nth-child(even) td { background: var(--paper); }
 
   /* Section header bar */
   .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
-  .section-header-bar { width: 4px; height: 28px; border-radius: 2px; flex-shrink: 0; }
-  .section-header-label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: #586064; }
-  .section-header-title { font-family: 'Manrope', sans-serif; font-size: 1.35rem; font-weight: 800; color: #2b3437; line-height: 1.2; }
+  .section-header-bar { width: 4px; height: 28px; border-radius: 2px; flex-shrink: 0; background: var(--accent); }
+  .section-header-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted); }
+  .section-header-title { font-family: 'Instrument Serif', Georgia, serif; font-size: 1.7rem; font-weight: 400; color: var(--ink); line-height: 1.15; letter-spacing: -0.01em; }
+
+  /* Cards get a soft cream-edge border for the Risika look */
+  .bg-surface-container-lowest, .bg-white { border: 1px solid var(--line-soft); }
+
+  /* Scrollbar tune (subtle) */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(15,61,52,0.18); border-radius: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  /* Pill utility (for status badges in new design) */
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; }
+  .pill--ok   { color:#2E7D5A; background:rgba(46,125,90,.10); border:1px solid rgba(46,125,90,.25); }
+  .pill--warn { color:#C67A1C; background:rgba(198,122,28,.10); border:1px solid rgba(198,122,28,.25); }
+  .pill--bad  { color:#B0392B; background:rgba(176,57,43,.10); border:1px solid rgba(176,57,43,.25); }
+  .pill__dot  { width:5px; height:5px; border-radius:50%; background: currentColor; }
 </style>
 </head>
 <body class="bg-background text-on-surface">
 
 <!-- ── LOGIN ─────────────────────────────────────────────────────────────── -->
-<div id="view-login" class="hidden fixed inset-0 z-[100] flex items-center justify-center" style="background: linear-gradient(135deg, #1a2332 0%, #2b3437 100%)">
+<div id="view-login" class="hidden fixed inset-0 z-[100] flex items-center justify-center" style="background: linear-gradient(135deg, #0B1F1A 0%, #0F3D34 100%)">
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-8">
     <div class="mb-8 text-center">
-      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#2b3437] mb-4">
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#0B1F1A] mb-4">
         <span class="material-symbols-outlined text-white text-2xl">shield</span>
       </div>
       <h1 class="font-headline font-extrabold text-2xl tracking-tight text-on-surface">RegnskabsRisk</h1>
@@ -161,32 +223,37 @@
 <div id="main-layout" class="hidden">
 
 <!-- ── Sidebar ─────────────────────────────────────────────────────────────── -->
-<aside class="h-screen w-64 fixed left-0 top-0 bg-[#f1f4f6] flex flex-col py-10 px-6 z-40 hidden md:flex">
-  <div class="font-['Manrope'] font-black text-2xl text-[#2C3E50] mb-10 tracking-tighter">ARCHITECT</div>
-  <nav class="space-y-1" id="sidebar-nav">
-    <button onclick="navigate('dashboard')" data-view="dashboard" class="nav-item w-full flex items-center gap-3 py-3 px-5 text-[#535f6f]/70 hover:bg-[#eaeff1] transition-all duration-200 rounded-lg font-['Inter'] font-medium text-sm tracking-wide">
-      <span class="material-symbols-outlined text-xl">dashboard</span>
+<aside class="h-screen w-64 fixed left-0 top-0 flex flex-col py-8 px-5 z-40 hidden md:flex" style="background:#0B1F1A;color:#D8D1BC">
+  <div class="flex items-center gap-2.5 mb-9 pl-1.5">
+    <div class="w-7 h-7 rounded-md flex items-center justify-center" style="background:#E8C547">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0B1F1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 12 4l8 16M7 14h10"/></svg>
+    </div>
+    <div class="font-['Geist'] font-semibold text-lg tracking-tight" style="color:#F4EEDB">ARCHITECT</div>
+  </div>
+  <nav class="space-y-0.5" id="sidebar-nav">
+    <button onclick="navigate('dashboard')" data-view="dashboard" class="nav-item w-full flex items-center gap-3 py-2.5 px-4 transition-all duration-200 rounded-md font-['Geist'] font-medium text-[13px] tracking-wide" style="color:#8A9C92">
+      <span class="material-symbols-outlined text-lg">dashboard</span>
       <span class="nav-label">Intelligence</span>
     </button>
-    <button onclick="navigate('search')" data-view="search" class="nav-item w-full flex items-center gap-3 py-3 px-5 text-[#535f6f]/70 hover:bg-[#eaeff1] transition-all duration-200 rounded-lg font-['Inter'] font-medium text-sm tracking-wide">
-      <span class="material-symbols-outlined text-xl">factory</span>
+    <button onclick="navigate('search')" data-view="search" class="nav-item w-full flex items-center gap-3 py-2.5 px-4 transition-all duration-200 rounded-md font-['Geist'] font-medium text-[13px] tracking-wide" style="color:#8A9C92">
+      <span class="material-symbols-outlined text-lg">factory</span>
       <span class="nav-label">Søg Virksomhed</span>
     </button>
-    <button onclick="navigate('reports')" data-view="reports" class="nav-item w-full flex items-center gap-3 py-3 px-5 text-[#535f6f]/70 hover:bg-[#eaeff1] transition-all duration-200 rounded-lg font-['Inter'] font-medium text-sm tracking-wide">
-      <span class="material-symbols-outlined text-xl">analytics</span>
+    <button onclick="navigate('reports')" data-view="reports" class="nav-item w-full flex items-center gap-3 py-2.5 px-4 transition-all duration-200 rounded-md font-['Geist'] font-medium text-[13px] tracking-wide" style="color:#8A9C92">
+      <span class="material-symbols-outlined text-lg">analytics</span>
       <span class="nav-label">Risk Reports</span>
     </button>
-    <button onclick="navigate('report')" data-view="report" class="nav-item w-full flex items-center gap-3 py-3 px-5 text-[#535f6f]/70 hover:bg-[#eaeff1] transition-all duration-200 rounded-lg font-['Inter'] font-medium text-sm tracking-wide">
-      <span class="material-symbols-outlined text-xl">description</span>
+    <button onclick="navigate('report')" data-view="report" class="nav-item w-full flex items-center gap-3 py-2.5 px-4 transition-all duration-200 rounded-md font-['Geist'] font-medium text-[13px] tracking-wide" style="color:#8A9C92">
+      <span class="material-symbols-outlined text-lg">description</span>
       <span class="nav-label">Rapport</span>
     </button>
-    <button onclick="navigate('settings')" data-view="settings" class="nav-item w-full flex items-center gap-3 py-3 px-5 text-[#535f6f]/70 hover:bg-[#eaeff1] transition-all duration-200 rounded-lg font-['Inter'] font-medium text-sm tracking-wide">
-      <span class="material-symbols-outlined text-xl">settings_account_box</span>
+    <button onclick="navigate('settings')" data-view="settings" class="nav-item w-full flex items-center gap-3 py-2.5 px-4 transition-all duration-200 rounded-md font-['Geist'] font-medium text-[13px] tracking-wide" style="color:#8A9C92">
+      <span class="material-symbols-outlined text-lg">settings_account_box</span>
       <span class="nav-label">Indstillinger</span>
     </button>
   </nav>
-  <button onclick="_logout()" class="w-full flex items-center gap-3 py-3 px-5 text-[#535f6f]/50 hover:bg-[#eaeff1] transition-all duration-200 rounded-lg font-['Inter'] font-medium text-sm tracking-wide mt-auto">
-    <span class="material-symbols-outlined text-xl">logout</span>
+  <button onclick="_logout()" class="w-full flex items-center gap-3 py-2.5 px-4 transition-all duration-200 rounded-md font-['Geist'] font-medium text-[13px] tracking-wide mt-auto" style="color:#6A7E75">
+    <span class="material-symbols-outlined text-lg">logout</span>
     <span class="nav-label">Log ud</span>
   </button>
 </aside>
@@ -195,16 +262,16 @@
 <main class="md:ml-64 min-h-screen pb-24 md:pb-0">
 
   <!-- Top bar -->
-  <header class="w-full sticky top-0 z-50 bg-[#f8f9fa] flex justify-between items-center px-8 py-4">
-    <h1 class="font-['Manrope'] font-bold text-lg tracking-tight text-[#535f6f]" id="topbar-title">The Precision Sanctuary</h1>
+  <header class="w-full sticky top-0 z-50 bg-[#F4EEDB] flex justify-between items-center px-8 py-4">
+    <h1 class="font-['Instrument_Serif'] font-bold text-lg tracking-tight text-[#0F3D34]" id="topbar-title">The Precision Sanctuary</h1>
     <div class="flex items-center gap-4">
       <button onclick="navigate('search')" class="cursor-pointer active:opacity-70 transition-opacity">
-        <span class="material-symbols-outlined text-[#535f6f]">search</span>
+        <span class="material-symbols-outlined text-[#0F3D34]">search</span>
       </button>
       <div class="w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center text-primary font-bold text-sm">NM</div>
     </div>
   </header>
-  <div class="bg-[#eaeff1] h-px w-full"></div>
+  <div class="bg-[#EDE5CC] h-px w-full"></div>
 
   <!-- ══ VIEW: Dashboard ════════════════════════════════════════════════════ -->
   <div id="view-dashboard" class="view active px-8 py-12 max-w-7xl mx-auto">
@@ -242,7 +309,7 @@
 
     <!-- Recent reports table -->
     <div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)]">
-      <div class="px-10 py-7 flex justify-between items-center" style="border-bottom: 1px solid #f1f4f6">
+      <div class="px-10 py-7 flex justify-between items-center" style="border-bottom: 1px solid #FBF7EC">
         <h3 class="text-2xl font-headline font-bold text-on-surface">Seneste Rapporter</h3>
         <button onclick="navigate('search')" class="text-primary font-bold text-sm hover:underline">+ Ny rapport</button>
       </div>
@@ -514,7 +581,7 @@
       <div class="report-layout flex-1">
 
         <!-- Section sidenav -->
-        <div class="report-sidenav bg-[#f8f9fa] hidden md:block" id="report-sidenav">
+        <div class="report-sidenav bg-[#F4EEDB] hidden md:block" id="report-sidenav">
           <div class="report-nav-item active-section" onclick="scrollToSection('s01')">
             <span class="report-nav-dot bg-gray-400" id="dot-s01"></span>01 CVR-DATA
           </div>
@@ -1071,23 +1138,23 @@
 
 <!-- ── Mobile bottom nav ──────────────────────────────────────────────────── -->
 <nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 md:hidden bg-white/80 backdrop-blur-md shadow-[0_-10px_40px_-10px_rgba(43,52,55,0.08)] rounded-t-xl" style="border-top: 1px solid rgba(171,179,183,0.1)">
-  <button onclick="navigate('dashboard')" class="flex flex-col items-center text-[#535f6f]/50 px-4 py-1">
+  <button onclick="navigate('dashboard')" class="flex flex-col items-center text-[#0F3D34]/50 px-4 py-1">
     <span class="material-symbols-outlined">grid_view</span>
     <span class="text-[10px] uppercase tracking-widest font-bold">Oversigt</span>
   </button>
-  <button onclick="navigate('search')" class="flex flex-col items-center text-[#535f6f]/50 px-4 py-1">
+  <button onclick="navigate('search')" class="flex flex-col items-center text-[#0F3D34]/50 px-4 py-1">
     <span class="material-symbols-outlined">search</span>
     <span class="text-[10px] uppercase tracking-widest font-bold">Søg</span>
   </button>
-  <button onclick="navigate('reports')" class="flex flex-col items-center text-[#535f6f]/50 px-4 py-1">
+  <button onclick="navigate('reports')" class="flex flex-col items-center text-[#0F3D34]/50 px-4 py-1">
     <span class="material-symbols-outlined">analytics</span>
     <span class="text-[10px] uppercase tracking-widest font-bold">Rapporter</span>
   </button>
-  <button onclick="navigate('report')" class="flex flex-col items-center text-[#535f6f]/50 px-4 py-1">
+  <button onclick="navigate('report')" class="flex flex-col items-center text-[#0F3D34]/50 px-4 py-1">
     <span class="material-symbols-outlined">description</span>
     <span class="text-[10px] uppercase tracking-widest font-bold">Rapport</span>
   </button>
-  <button onclick="navigate('settings')" class="flex flex-col items-center text-[#535f6f]/50 px-4 py-1">
+  <button onclick="navigate('settings')" class="flex flex-col items-center text-[#0F3D34]/50 px-4 py-1">
     <span class="material-symbols-outlined">settings</span>
     <span class="text-[10px] uppercase tracking-widest font-bold">Indstillinger</span>
   </button>
@@ -1150,10 +1217,10 @@ function navigate(view) {
 
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.classList.remove('active');
-    btn.classList.add('text-[#535f6f]/70');
+    btn.classList.add('text-[#0F3D34]/70');
   });
   const activeBtn = document.querySelector(`[data-view="${view}"]`);
-  if (activeBtn) { activeBtn.classList.add('active'); activeBtn.classList.remove('text-[#535f6f]/70'); }
+  if (activeBtn) { activeBtn.classList.add('active'); activeBtn.classList.remove('text-[#0F3D34]/70'); }
 
   const titles = {
     dashboard: 'Intelligence',
@@ -2518,7 +2585,7 @@ function setStep(idx, state_) {
   const label = step.querySelector('span:last-child');
   if (state_ === 'active') {
     icon.className = 'step-icon w-7 h-7 rounded-full border-2 border-primary flex items-center justify-center flex-shrink-0';
-    icon.innerHTML = '<div style="width:10px;height:10px;border:2px solid #535f6f;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite"></div>';
+    icon.innerHTML = '<div style="width:10px;height:10px;border:2px solid #0F3D34;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite"></div>';
     label.className = 'text-sm text-on-surface font-semibold';
   } else if (state_ === 'done') {
     icon.className = 'step-icon w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0';
