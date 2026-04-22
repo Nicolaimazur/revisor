@@ -29,19 +29,31 @@ from reportlab.platypus import (
 from reportlab.platypus.frames import Frame
 
 # ── Colour palette ────────────────────────────────────────────────────────────
-NAVY       = HexColor("#1e3050")
-NAVY2      = HexColor("#243a5e")
-GOLD       = HexColor("#e8960a")
-BLUE       = HexColor("#1a5276")
-BLUE_LIGHT = HexColor("#2980b9")
-GREEN      = HexColor("#1e8449")
-ORANGE     = HexColor("#ca6f1e")
-RED        = HexColor("#a93226")
-GRAY       = HexColor("#7f8c8d")
-ROW_ALT    = HexColor("#f4f6f9")
-BORDER     = HexColor("#d5d8dc")
+# Risika-inspired editorial palette. Variable navne bevares så downstream-kode
+# ikke behøver ændringer — kun værdierne er opdateret.
+NAVY       = HexColor("#0B1F1A")   # ink — header/cover background
+NAVY2      = HexColor("#0F3D34")   # forest — subtle depth on dark bg
+GOLD       = HexColor("#E8C547")   # accent yellow
+BLUE       = HexColor("#0F3D34")   # forest (reuses "BLUE" slot for primary)
+BLUE_LIGHT = HexColor("#2F6F5E")   # moss
+GREEN      = HexColor("#2E7D5A")   # ok
+ORANGE     = HexColor("#C67A1C")   # warn
+RED        = HexColor("#B0392B")   # bad
+GRAY       = HexColor("#5A6B65")   # muted
+ROW_ALT    = HexColor("#FBF7EC")   # paper — table zebra
+BORDER     = HexColor("#D3CCB4")   # outline-variant
+CREAM      = HexColor("#F4EEDB")
+SAGE       = HexColor("#C8DCCB")
 WHITE      = colors.white
 BLACK      = colors.black
+
+# ── Typography — ReportLab built-ins der approximerer Geist / Instrument Serif
+BODY_FONT        = "Helvetica"
+BODY_FONT_BOLD   = "Helvetica-Bold"
+BODY_FONT_ITALIC = "Helvetica-Oblique"
+SERIF_FONT       = "Times-Roman"
+SERIF_FONT_BOLD  = "Times-Bold"
+SERIF_FONT_ITAL  = "Times-Italic"
 
 PAGE_W, PAGE_H = A4
 MARGIN = 1.8 * cm
@@ -77,7 +89,7 @@ RISK_SYMBOL = {
 
 def _risk(level: str, label: str) -> Paragraph:
     sym, col = RISK_SYMBOL.get(level, ("—", GRAY))
-    hex_col = col.hexval() if hasattr(col, "hexval") else "#7f8c8d"
+    hex_col = col.hexval() if hasattr(col, "hexval") else "#5A6B65"
     return Paragraph(
         f'<font color="{hex_col}"><b>{sym} {label}</b></font>',
         _style("body_small"),
@@ -99,32 +111,32 @@ def _build_styles() -> None:
     defs = {
         "cover_label": ParagraphStyle(
             "cover_label",
-            fontName="Helvetica",
+            fontName=BODY_FONT,
             fontSize=8,
-            textColor=HexColor("#aec6e8"),
+            textColor=HexColor("#8FA398"),   # soft green on ink cover
             spaceAfter=0,
             leading=10,
-            letterSpacing=1,
+            letterSpacing=1.5,
         ),
         "cover_title": ParagraphStyle(
             "cover_title",
-            fontName="Helvetica-Bold",
-            fontSize=32,
-            textColor=WHITE,
+            fontName=SERIF_FONT,             # editorial serif for the cover title
+            fontSize=38,
+            textColor=CREAM,
             spaceAfter=6,
-            leading=38,
+            leading=42,
         ),
         "cover_sub": ParagraphStyle(
             "cover_sub",
-            fontName="Helvetica",
+            fontName=BODY_FONT,
             fontSize=13,
-            textColor=WHITE,
+            textColor=CREAM,
             spaceAfter=4,
             leading=18,
         ),
         "cover_date": ParagraphStyle(
             "cover_date",
-            fontName="Helvetica",
+            fontName=BODY_FONT,
             fontSize=12,
             textColor=GOLD,
             spaceAfter=0,
@@ -132,32 +144,32 @@ def _build_styles() -> None:
         ),
         "cover_purpose": ParagraphStyle(
             "cover_purpose",
-            fontName="Helvetica",
+            fontName=BODY_FONT,
             fontSize=9,
-            textColor=HexColor("#1a2b3c"),
+            textColor=HexColor("#0B1F1A"),
             spaceAfter=3,
             leading=13,
         ),
         "section_hdr": ParagraphStyle(
             "section_hdr",
-            fontName="Helvetica-Bold",
+            fontName=BODY_FONT_BOLD,
             fontSize=10,
-            textColor=WHITE,
+            textColor=CREAM,
             spaceAfter=0,
             leading=14,
         ),
         "sub_hdr": ParagraphStyle(
             "sub_hdr",
-            fontName="Helvetica-Bold",
-            fontSize=10,
-            textColor=BLUE,
+            fontName=SERIF_FONT_BOLD,        # editorial sub-headings
+            fontSize=13,
+            textColor=BLUE,                  # forest
             spaceBefore=10,
             spaceAfter=4,
-            leading=14,
+            leading=16,
         ),
         "person_hdr": ParagraphStyle(
             "person_hdr",
-            fontName="Helvetica-Bold",
+            fontName=BODY_FONT_BOLD,
             fontSize=9,
             textColor=BLUE,
             spaceBefore=6,
@@ -166,33 +178,33 @@ def _build_styles() -> None:
         ),
         "body": ParagraphStyle(
             "body",
-            fontName="Helvetica",
+            fontName=BODY_FONT,
             fontSize=9,
-            textColor=HexColor("#1a1a1a"),
+            textColor=HexColor("#0B1F1A"),
             spaceAfter=6,
             leading=13,
         ),
         "body_small": ParagraphStyle(
             "body_small",
-            fontName="Helvetica",
+            fontName=BODY_FONT,
             fontSize=8.5,
-            textColor=HexColor("#1a1a1a"),
+            textColor=HexColor("#0B1F1A"),
             spaceAfter=3,
             leading=12,
         ),
         "italic_small": ParagraphStyle(
             "italic_small",
-            fontName="Helvetica-Oblique",
+            fontName=BODY_FONT_ITALIC,
             fontSize=8,
-            textColor=HexColor("#555555"),
+            textColor=GRAY,
             spaceAfter=4,
             leading=11,
         ),
         "callout": ParagraphStyle(
             "callout",
-            fontName="Helvetica",
+            fontName=BODY_FONT,
             fontSize=8.5,
-            textColor=HexColor("#1a1a1a"),
+            textColor=HexColor("#0B1F1A"),
             spaceAfter=3,
             leading=13,
             leftIndent=8,
@@ -385,7 +397,7 @@ def _callout(text: str, bold_prefix: str = "") -> Table:
         para = Paragraph(text, _style("callout"))
     tbl = Table([[para]], colWidths=[PAGE_W - 2 * MARGIN])
     tbl.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), HexColor("#eaf0fb")),
+        ("BACKGROUND", (0, 0), (-1, -1), SAGE),
         ("LINEBEFORE", (0, 0), (0, -1), 4, BLUE),
         ("TOPPADDING",    (0, 0), (-1, -1), 8),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
@@ -411,15 +423,15 @@ def _build_cover(data: dict) -> list:
     # Label
     story.append(Paragraph(
         "KUNDE DUE DILIGENCE  |  REVISOR ONBOARDING",
-        ParagraphStyle("cl", fontName="Helvetica", fontSize=8,
-                       textColor=HexColor("#aec6e8"), leading=10, leftIndent=MARGIN)
+        ParagraphStyle("cl", fontName=BODY_FONT, fontSize=8,
+                       textColor=HexColor("#8FA398"), leading=10, leftIndent=MARGIN)
     ))
     story.append(Spacer(1, 0.6 * cm))
 
     # Company name
     story.append(Paragraph(
         meta["selskabsnavn"],
-        ParagraphStyle("ct", fontName="Helvetica-Bold", fontSize=30,
+        ParagraphStyle("ct", fontName=SERIF_FONT, fontSize=38,
                        textColor=WHITE, leading=36, leftIndent=MARGIN)
     ))
     story.append(Spacer(1, 0.3 * cm))
@@ -465,13 +477,13 @@ def _build_cover(data: dict) -> list:
             "ejere (UBO), finansielle nøgletal, nyhedsovervågning og brancheanalyse. "
             "Rapporten erstatter ikke en fuld AML-risikovurdering, men udgør et dokumenteret "
             "grundlag herfor.",
-            ParagraphStyle("pp", fontName="Helvetica", fontSize=9,
-                           textColor=HexColor("#1a1a1a"), leading=13,
+            ParagraphStyle("pp", fontName=BODY_FONT, fontSize=9,
+                           textColor=HexColor("#0B1F1A"), leading=13,
                            leftIndent=0, rightIndent=0)
         )]],
         colWidths=[content_w - 2 * MARGIN + 0.4 * cm],
         style=TableStyle([
-            ("BACKGROUND",    (0, 0), (-1, -1), HexColor("#f0f4fb")),
+            ("BACKGROUND",    (0, 0), (-1, -1), ROW_ALT),
             ("BOX",           (0, 0), (-1, -1), 0.5, BORDER),
             ("LEFTPADDING",   (0, 0), (-1, -1), 10),
             ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
