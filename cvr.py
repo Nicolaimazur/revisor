@@ -96,11 +96,20 @@ async def _fetch_person_risiko(page, enhed_id: str, navn: str) -> dict:
     """
     data = await _fetch_json(page, PERSON_URL.format(enhed_id=enhed_id))
     if not data:
+        log.warning("person_risiko %s (%s): ingen data fra person-API", navn, enhed_id)
         return {"navn": navn, "enhed_id": enhed_id, "konkurser": [], "aktive_selskaber": []}
 
+    # Debug: log top-level keys so we can see the actual structure
+    top_keys = list(data.keys()) if isinstance(data, dict) else []
+    log.info("person_risiko %s: API top-keys=%s", navn, top_keys)
+
     relationer = data.get("personRelationer", {}) or {}
+    rel_keys = list(relationer.keys()) if isinstance(relationer, dict) else []
+    log.info("person_risiko %s: personRelationer keys=%s", navn, rel_keys)
+
     aktive = relationer.get("aktiveRelationer", []) or []
     ophoerte = relationer.get("ophoerteRelationer", []) or []
+    log.info("person_risiko %s: aktive=%d ophoerte=%d", navn, len(aktive), len(ophoerte))
 
     rolle_map = {
         "adm_dir":           "Adm. direktør",
@@ -126,20 +135,32 @@ async def _fetch_person_risiko(page, enhed_id: str, navn: str) -> dict:
         if cvr_nr and cvr_nr not in seen_cvr:
             seen_cvr.add(cvr_nr)
             unikke_ophoerte.append(rel)
+        elif not cvr_nr:
+            log.warning("person_risiko %s: ophørt relation mangler cvrnummer: %s", navn, rel)
+
+    log.info("person_risiko %s: unikke ophørte CVR'er=%d: %s",
+             navn, len(unikke_ophoerte), [r.get("cvrnummer") for r in unikke_ophoerte])
 
     # Hent status parallelt for alle ophørte selskaber (maks 20)
     async def _hent_status(rel):
         status = rel.get("virksomhedsstatus") or ""
         cvr_nr = rel.get("cvrnummer", "")
+        selskab_navn = rel.get("senesteNavn", "")
+        log.info("person_risiko %s: checker CVR %s (%s) — inline_status=%r",
+                 navn, cvr_nr, selskab_navn, status)
         if not status and cvr_nr:
             try:
-                co_data = await _fetch_json(page, GATEWAY_URL.format(cvr=cvr_nr), timeout_ms=6000)
+                co_data = await _fetch_json(page, GATEWAY_URL.format(cvr=cvr_nr), timeout_ms=8000)
                 if co_data:
                     status = (co_data.get("stamdata", {}) or {}).get("status", "") or ""
+                    log.info("person_risiko %s: CVR %s (%s) → status=%r",
+                             navn, cvr_nr, selskab_navn, status)
                 else:
-                    log.warning("person_risiko: CVR-opslag returnerede ingen data for %s", cvr_nr)
+                    log.warning("person_risiko %s: CVR-opslag returnerede ingen data for %s (%s)",
+                                navn, cvr_nr, selskab_navn)
             except Exception as e:
-                log.warning("person_risiko: CVR-opslag fejlede for %s: %s", cvr_nr, e)
+                log.warning("person_risiko %s: CVR-opslag fejlede for %s (%s): %s",
+                            navn, cvr_nr, selskab_navn, e)
         return rel, status
 
     resultater = await asyncio.gather(
@@ -166,6 +187,9 @@ async def _fetch_person_risiko(page, enhed_id: str, navn: str) -> dict:
     if timeout_count:
         log.warning("person_risiko %s: %d/%d selskabsopslag fejlede — konkurshistorik kan være ufuldstændig",
                     navn, timeout_count, len(unikke_ophoerte))
+
+    log.info("person_risiko %s: fandt %d konkurs/tvangs/likvidations-selskaber: %s",
+             navn, len(konkurser), [k.get("navn") for k in konkurser])
 
     # Aktive selskaber (summary)
     aktive_unikke = {}
