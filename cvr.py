@@ -91,7 +91,7 @@ PERSON_URL = (
 )
 
 PERSON_SOEG_URL = (
-    "https://datacvr.virk.dk/gateway/virksomhed/soeg"
+    "https://datacvr.virk.dk/gateway/person/soeg"
     "?fritekst={navn_enc}&locale=da&sideIndex=0&size=20"
 )
 
@@ -154,16 +154,31 @@ async def _fetch_person_risiko(page, enhed_id: str, navn: str) -> dict:
         navn_enc = _url_quote(navn)
         soeg_url = PERSON_SOEG_URL.format(navn_enc=navn_enc)
         soeg_data = await _fetch_json(page, soeg_url, timeout_ms=10000)
+
+        # Log råsvaret for at forstå strukturen
+        if soeg_data is None:
+            log.warning("person_risiko %s: soeg returnerede None (timeout/fejl)", navn)
+        elif isinstance(soeg_data, dict):
+            log.info("person_risiko %s: soeg top-keys=%s", navn, list(soeg_data.keys())[:10])
+            # Log første 400 tegn af råsvaret
+            import json as _json
+            log.info("person_risiko %s: soeg råsvar=%s", navn, _json.dumps(soeg_data)[:400])
+        elif isinstance(soeg_data, list):
+            log.info("person_risiko %s: soeg liste len=%d", navn, len(soeg_data))
+
         enheder = []
         if isinstance(soeg_data, dict):
             enheder = (soeg_data.get("hits") or soeg_data.get("enheder") or
-                       soeg_data.get("resultater") or [])
+                       soeg_data.get("resultater") or soeg_data.get("personer") or [])
+            # Nogle endpoints pakker data i et sub-objekt
+            if isinstance(enheder, dict):
+                enheder = enheder.get("hits") or enheder.get("enheder") or []
         elif isinstance(soeg_data, list):
             enheder = soeg_data
 
-        log.info("person_risiko %s: soeg returnerede %d enheder", navn, len(enheder))
+        log.info("person_risiko %s: soeg fandt %d enheder", navn, len(enheder))
         if enheder:
-            log.info("person_risiko %s: soeg keys=%s", navn, list((enheder[0] or {}).keys())[:10])
+            log.info("person_risiko %s: soeg[0] keys=%s", navn, list((enheder[0] or {}).keys())[:10])
 
         for enhed in (enheder or []):
             cvr_nr = str(enhed.get("cvrNummer") or enhed.get("cvrnummer") or "")
