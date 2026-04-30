@@ -88,6 +88,7 @@ FINANSIELLE TAL:
 - Udelad poster hvor alle værdier er null.
 - `sektion_01.seneste_regnskabsaar`: `aar_kolonner[0]` (YYYY). Null hvis ingen data.
 - `sektion_01.naeste_regnskabsfrist`: Seneste regnskabsår + 1 år + 5 måneder → "31/05-YYYY". Null hvis ingen data.
+- NYREGISTRERET SELSKAB: Hvis `proff_data` er tom ({{}}) eller `proff_data.regnskaber` er en tom liste, betyder det at selskabet endnu ikke har indberettet årsregnskab. Sæt da `sektion_04.ingen_regnskaber_note` = "Virksomheden er nyregistreret og har endnu ikke indberettet årsregnskab til Erhvervsstyrelsen. Finansielle nøgletal er derfor ikke tilgængelige." og sæt `sektion_04.aar_kolonner` = [] og `sektion_04.regnskabspost_tabel` = [].
 
 FINANSIEL ANALYSE (sektion_04.finansiel_analyse):
 - Analyser udviklingen over alle tilgængelige år. Beregn vækstrater og margins.
@@ -282,6 +283,7 @@ Returner dette præcise JSON-objekt (ingen kommentarer, kun gyldigt JSON):
   }},
 
   "sektion_04": {{
+    "ingen_regnskaber_note": null,
     "aar_kolonner": ["<seneste år YYYY>", "<år-1>", "<år-2>", "<år-3>", "<år-4>"],
     "regnskabspost_tabel": [
       {{"post": "<post>", "vaerdier": ["<beløb seneste>", "<beløb år-1>", "<beløb år-2>", "<beløb år-3>", "<beløb år-4>"], "enhed": "t.DKK"}}

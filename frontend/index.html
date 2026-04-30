@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>ARCHITECT — Due Diligence Platform</title>
+<title>Revidera — Due Diligence Platform</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -201,7 +201,7 @@
       <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#0B1F1A] mb-4">
         <span class="material-symbols-outlined text-white text-2xl">shield</span>
       </div>
-      <h1 class="font-headline font-extrabold text-2xl tracking-tight text-on-surface">RegnskabsRisk</h1>
+      <h1 class="font-headline font-extrabold text-2xl tracking-tight text-on-surface">Revidera</h1>
       <p class="text-sm text-on-surface-variant mt-1">Due Diligence Platform</p>
     </div>
     <div id="login-error" class="hidden mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"></div>
@@ -228,7 +228,7 @@
     <div class="w-7 h-7 rounded-md flex items-center justify-center" style="background:#E8C547">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0B1F1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 12 4l8 16M7 14h10"/></svg>
     </div>
-    <div class="font-['Geist'] font-semibold text-lg tracking-tight" style="color:#F4EEDB">ARCHITECT</div>
+    <div class="font-['Geist'] font-semibold text-lg tracking-tight" style="color:#F4EEDB">Revidera</div>
   </div>
   <nav class="space-y-0.5" id="sidebar-nav">
     <button onclick="navigate('dashboard')" data-view="dashboard" class="nav-item w-full flex items-center gap-3 py-2.5 px-4 transition-all duration-200 rounded-md font-['Geist'] font-medium text-[13px] tracking-wide" style="color:#8A9C92">
@@ -263,7 +263,7 @@
 
   <!-- Top bar -->
   <header class="w-full sticky top-0 z-50 bg-[#F4EEDB] flex justify-between items-center px-8 py-4">
-    <h1 class="font-['Instrument_Serif'] font-bold text-lg tracking-tight text-[#0F3D34]" id="topbar-title">The Precision Sanctuary</h1>
+    <h1 class="font-['Instrument_Serif'] font-bold text-lg tracking-tight text-[#0F3D34]" id="topbar-title">Revidera</h1>
     <div class="flex items-center gap-4">
       <button onclick="navigate('search')" class="cursor-pointer active:opacity-70 transition-opacity">
         <span class="material-symbols-outlined text-[#0F3D34]">search</span>
@@ -861,6 +861,10 @@
               </div>
             </div>
             <div class="space-y-5">
+              <div id="rv-ingen-regnskaber-banner" class="hidden flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
+                <span class="material-symbols-outlined text-amber-500 mt-0.5 flex-shrink-0" style="font-size:20px">info</span>
+                <p class="text-sm text-amber-800 leading-relaxed" id="rv-ingen-regnskaber-tekst"></p>
+              </div>
               <div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_10px_40px_-10px_rgba(43,52,55,0.08)] border border-outline-variant/10">
                 <div class="overflow-x-auto">
                   <table class="w-full text-sm" id="rv-regnskab">
@@ -1229,7 +1233,7 @@ function navigate(view) {
     report: 'Rapport',
     settings: 'Indstillinger'
   };
-  document.getElementById('topbar-title').textContent = titles[view] || 'The Precision Sanctuary';
+  document.getElementById('topbar-title').textContent = titles[view] || 'Revidera';
 
   if (view === 'dashboard') refreshDashboard();
   if (view === 'reports') refreshReports();
@@ -1995,6 +1999,14 @@ function renderReport(data) {
   const regnskabThead = document.getElementById('rv-regnskab-thead');
   const regnskabTbody = document.getElementById('rv-regnskab-tbody');
   const rows04 = s04.regnskabspost_tabel || [];
+
+  // Vis advarselsbanner hvis virksomheden er for ny til at have regnskaber
+  if (s04.ingen_regnskaber_note) {
+    const banner = document.getElementById('rv-ingen-regnskaber-banner');
+    const tekst  = document.getElementById('rv-ingen-regnskaber-tekst');
+    tekst.textContent = s04.ingen_regnskaber_note;
+    banner.classList.remove('hidden');
+  }
 
   // Detect format: new = aar_kolonner + vaerdier[], old = regnskabsaar_seneste + seneste_aar/foregaaende_aar
   const isNewFormat = Array.isArray(s04.aar_kolonner) && s04.aar_kolonner.length > 0;
