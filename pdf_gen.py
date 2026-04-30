@@ -289,7 +289,7 @@ def _make_page_templates(doc: BaseDocTemplate, meta: dict) -> list[PageTemplate]
         canvas.setFont("Helvetica", 7)
         canvas.setFillColor(WHITE)
         canvas.drawString(MARGIN, PAGE_H - 0.75 * cm,
-                          "FORTROLIGT — KUNDE DUE DILIGENCE RAPPORT")
+                          "REVIDERA  ·  FORTROLIGT KUNDE DUE DILIGENCE")
         right_txt = f"{company}  |  CVR {cvr}"
         canvas.drawRightString(PAGE_W - MARGIN, PAGE_H - 0.75 * cm, right_txt)
 
@@ -422,7 +422,7 @@ def _build_cover(data: dict) -> list:
 
     # Label
     story.append(Paragraph(
-        "KUNDE DUE DILIGENCE  |  REVISOR ONBOARDING",
+        "REVIDERA  ·  KUNDE DUE DILIGENCE",
         ParagraphStyle("cl", fontName=BODY_FONT, fontSize=8,
                        textColor=HexColor("#8FA398"), leading=10, leftIndent=MARGIN)
     ))
