@@ -84,70 +84,44 @@ async def _resolve_owner_cvr(page, enhed_id: str) -> Optional[str]:
 _KONKURS_KEYWORDS = ["KONKURS", "TVANGS", "LIKVIDATION"]
 
 
-def _navn_slug(navn: str) -> str:
-    """Konverter 'Jan Revald' → 'jan-revald' som datacvr.virk.dk bruger i person-URL'er."""
-    import unicodedata
-    nfkd = unicodedata.normalize("NFKD", navn.lower())
-    ascii_s = nfkd.encode("ascii", "ignore").decode("ascii")
-    return re.sub(r"[^a-z0-9]+", "-", ascii_s).strip("-")
+
+PERSON_URL = (
+    "https://datacvr.virk.dk/gateway/person/hentPerson"
+    "?enhedsnummer={enhed_id}&persontype=deltager&locale=da"
+)
+
+PERSON_SOEG_URL = (
+    "https://datacvr.virk.dk/gateway/virksomhed/soeg"
+    "?fritekst={navn_enc}&locale=da&sideIndex=0&size=20"
+)
 
 
 async def _fetch_person_risiko(page, enhed_id: str, navn: str) -> dict:
     """
     Hent persons selskabshistorik og markér eventuelle konkurs/tvangsopløste selskaber.
 
-    datacvr.virk.dk bruger navn-baserede URL'er for personer:
-      /enhed/person/jan-revald  (ikke numerisk ID)
-    Vi navigerer til personens side og opfanger hentPerson API-kaldet som sidens
-    JavaScript laver med korrekte session-cookies.
+    Strategi (to trin):
+    1. Kald hentPerson API direkte — tjek aktive+ophørte+simpleRelationer
+    2. Fallback: søg efter personnavn via virksomhedssøgning og tjek resultaters status
     """
-    captured: dict = {}
+    _empty = {"navn": navn, "enhed_id": enhed_id, "konkurser": [], "aktive_selskaber": []}
 
-    async def _on_response(response):
-        try:
-            if "hentPerson" in response.url:
-                data = await response.json()
-                # Accepter kun hvis det er den rigtige person (enhed_id i URL)
-                # eller som fallback hvis vi endnu intet har opfanget
-                if str(enhed_id) in response.url or "data" not in captured:
-                    captured["data"] = data
-        except Exception:
-            pass
-
-    slug = _navn_slug(navn)
-    log.info("person_risiko %s: navigerer til /enhed/person/%s", navn, slug)
-
-    page.on("response", _on_response)
-    try:
-        await page.goto(
-            f"https://datacvr.virk.dk/enhed/person/{slug}",
-            wait_until="networkidle",
-            timeout=25000,
-        )
-        await page.wait_for_timeout(2000)   # giv SPA tid til evt. sekundære kald
-    except Exception as e:
-        log.warning("person_risiko %s (%s): navigation fejlede: %s", navn, enhed_id, e)
-    finally:
-        page.remove_listener("response", _on_response)
-
-    data = captured.get("data")
-    if not data:
-        log.warning("person_risiko %s (%s): ingen data opfanget fra slug=%s", navn, enhed_id, slug)
-        return {"navn": navn, "enhed_id": enhed_id, "konkurser": [], "aktive_selskaber": []}
-
-    top_keys = list(data.keys()) if isinstance(data, dict) else []
-    log.info("person_risiko %s: data opfanget, top-keys=%s", navn, top_keys)
-
-    # Fejlside-detektion (Spring Boot 404: {"timestamp","status","error","path"})
-    if "error" in top_keys and "status" in top_keys and "personRelationer" not in top_keys:
-        log.warning("person_risiko %s: slug=%s returnerede fejlside (status=%s)",
-                    navn, slug, data.get("status"))
-        return {"navn": navn, "enhed_id": enhed_id, "konkurser": [], "aktive_selskaber": []}
+    # ── Trin 1: hentPerson ───────────────────────────────────────────────────
+    data = await _fetch_json(page, PERSON_URL.format(enhed_id=enhed_id), timeout_ms=12000)
+    if not data or not isinstance(data, dict):
+        log.warning("person_risiko %s (%s): hentPerson returnerede ingen data", navn, enhed_id)
+        data = {}
 
     relationer = (data.get("personRelationer") or {})
-    aktive  = relationer.get("aktiveRelationer",  []) or []
+    aktive   = relationer.get("aktiveRelationer",  []) or []
     ophoerte = relationer.get("ophoerteRelationer", []) or []
-    log.info("person_risiko %s: aktive=%d ophoerte=%d", navn, len(aktive), len(ophoerte))
+    simple   = relationer.get("simpleRelationer",   []) or []
+    skjul    = data.get("skjulRelationer")
+
+    log.info("person_risiko %s: hentPerson aktive=%d ophoerte=%d simple=%d skjul=%s",
+             navn, len(aktive), len(ophoerte), len(simple), skjul)
+    if simple:
+        log.info("person_risiko %s: simpleRelationer[0]=%s", navn, str(simple[0])[:200])
 
     rolle_map = {
         "adm_dir":                   "Adm. direktør",
@@ -163,28 +137,56 @@ async def _fetch_person_risiko(page, enhed_id: str, navn: str) -> dict:
         key = r.get("tekstnogle", "").replace("erstdist-organisation-rolle-", "")
         return rolle_map.get(key, key)
 
-    # Ophørte selskaber — dedupliker på CVR
+    # Ophørte relationer fra hentPerson — brug hvis vi fik noget
     seen_cvr: set = set()
     unikke_ophoerte = []
-    for rel in ophoerte:
-        cvr_nr = rel.get("cvrnummer", "")
+    for rel in list(ophoerte) + list(simple):   # tjek begge felter
+        cvr_nr = str(rel.get("cvrnummer", "") or "")
         if cvr_nr and cvr_nr not in seen_cvr:
             seen_cvr.add(cvr_nr)
             unikke_ophoerte.append(rel)
 
-    log.info("person_risiko %s: unikke ophørte CVR'er=%d: %s",
-             navn, len(unikke_ophoerte), [r.get("cvrnummer") for r in unikke_ophoerte])
+    log.info("person_risiko %s: unikke ophørte fra hentPerson=%d", navn, len(unikke_ophoerte))
 
-    # Hent status parallelt for hvert ophørt selskab
+    # ── Trin 2: Søg-fallback hvis ingen ophørte relationer ───────────────────
+    soeg_resultater = []
+    if not unikke_ophoerte:
+        navn_enc = _url_quote(navn)
+        soeg_url = PERSON_SOEG_URL.format(navn_enc=navn_enc)
+        soeg_data = await _fetch_json(page, soeg_url, timeout_ms=10000)
+        enheder = []
+        if isinstance(soeg_data, dict):
+            enheder = (soeg_data.get("hits") or soeg_data.get("enheder") or
+                       soeg_data.get("resultater") or [])
+        elif isinstance(soeg_data, list):
+            enheder = soeg_data
+
+        log.info("person_risiko %s: soeg returnerede %d enheder", navn, len(enheder))
+        if enheder:
+            log.info("person_risiko %s: soeg keys=%s", navn, list((enheder[0] or {}).keys())[:10])
+
+        for enhed in (enheder or []):
+            cvr_nr = str(enhed.get("cvrNummer") or enhed.get("cvrnummer") or "")
+            e_navn = enhed.get("senesteNavn") or enhed.get("navn") or ""
+            status = enhed.get("virksomhedsstatus") or enhed.get("status") or ""
+            if cvr_nr and cvr_nr not in seen_cvr:
+                seen_cvr.add(cvr_nr)
+                soeg_resultater.append({
+                    "cvr": cvr_nr, "navn": e_navn,
+                    "status": str(status).upper(), "rolle": "—",
+                })
+
+    # ── Evaluer konkurser ────────────────────────────────────────────────────
+    # Fra hentPerson ophoerte (status-opslag)
     async def _hent_status(rel):
-        cvr_nr      = rel.get("cvrnummer", "")
+        cvr_nr       = str(rel.get("cvrnummer", "") or "")
         selskab_navn = rel.get("senesteNavn", "")
-        status      = rel.get("virksomhedsstatus") or ""
+        status       = str(rel.get("virksomhedsstatus") or "").upper()
         if not status and cvr_nr:
             try:
                 co_data = await _fetch_json(page, GATEWAY_URL.format(cvr=cvr_nr), timeout_ms=8000)
                 if co_data:
-                    status = (co_data.get("stamdata") or {}).get("status", "") or ""
+                    status = str((co_data.get("stamdata") or {}).get("status", "") or "").upper()
                     log.info("person_risiko %s: CVR %s (%s) → status=%r",
                              navn, cvr_nr, selskab_navn, status)
                 else:
@@ -200,23 +202,24 @@ async def _fetch_person_risiko(page, enhed_id: str, navn: str) -> dict:
     )
 
     konkurser = []
-    timeout_count = 0
     for res in resultater:
         if isinstance(res, Exception):
-            timeout_count += 1
             log.warning("person_risiko %s: gather exception: %s", navn, res)
             continue
         rel, status = res
-        if any(k in status.upper() for k in _KONKURS_KEYWORDS):
+        if any(k in status for k in _KONKURS_KEYWORDS):
             konkurser.append({
-                "cvr":   rel.get("cvrnummer", ""),
-                "navn":  rel.get("senesteNavn", ""),
+                "cvr":    str(rel.get("cvrnummer", "") or ""),
+                "navn":   rel.get("senesteNavn", ""),
                 "status": status,
-                "rolle": _rolle(rel),
+                "rolle":  _rolle(rel),
             })
 
-    if timeout_count:
-        log.warning("person_risiko %s: %d/%d opslag fejlede", navn, timeout_count, len(unikke_ophoerte))
+    # Fra soeg-fallback
+    for sr in soeg_resultater:
+        if any(k in sr["status"] for k in _KONKURS_KEYWORDS):
+            if sr["cvr"] not in {k["cvr"] for k in konkurser}:
+                konkurser.append(sr)
 
     log.info("person_risiko %s: fandt %d konkurs/tvangs-selskaber: %s",
              navn, len(konkurser), [k["navn"] for k in konkurser])
@@ -224,7 +227,7 @@ async def _fetch_person_risiko(page, enhed_id: str, navn: str) -> dict:
     # Aktive selskaber
     aktive_unikke: dict = {}
     for rel in aktive:
-        cvr_nr = rel.get("cvrnummer", "")
+        cvr_nr = str(rel.get("cvrnummer", "") or "")
         if cvr_nr not in aktive_unikke:
             aktive_unikke[cvr_nr] = rel.get("senesteNavn", "")
 
