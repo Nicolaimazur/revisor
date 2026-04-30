@@ -1049,17 +1049,19 @@ async def fetch_cvr_data(cvr: str) -> dict:
             except Exception:
                 retssager_data = {"resultater": [], "risiko": "lav", "noter": []}
 
-            # ── Feature 5: Tinglysning (tingbog, bilbog, personbog) ───────────
-            try:
-                tinglysning_data = await fetch_tinglysning_data(cvr_clean, alle_navne[:3])
-            except Exception:
-                tinglysning_data = {"tingbog": [], "bilbog": [], "personbog": [], "fejl": None}
         finally:
             # Browser lukkes ALTID — også hvis der sker en fejl undervejs
             try:
                 await browser.close()
             except Exception:
                 pass
+
+    # ── Feature 5: Tinglysning — køres EFTER browser er lukket så det ikke
+    # forsinker rapporten. Har sit eget Playwright-browser-instance.
+    try:
+        tinglysning_data = await fetch_tinglysning_data(cvr_clean, alle_navne[:2])
+    except Exception:
+        tinglysning_data = {"tingbog": [], "bilbog": [], "personbog": [], "fejl": None}
 
     return _normalize(
         response, cvr_clean, noegletal_data,
@@ -1068,6 +1070,7 @@ async def fetch_cvr_data(cvr: str) -> dict:
         koncern_data=koncern_data,
         historik_data=historik_data,
         retssager_data=retssager_data,
+        tinglysning_data=tinglysning_data,
     )
 
 
@@ -1162,6 +1165,7 @@ def _normalize(
     koncern_data=None,
     historik_data=None,
     retssager_data=None,
+    tinglysning_data=None,
 ) -> dict:
     stamdata    = data.get("stamdata", {})
     ejerforhold = data.get("ejerforhold", {})

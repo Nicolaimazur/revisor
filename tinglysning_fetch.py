@@ -70,18 +70,23 @@ async def fetch_tinglysning_data(cvr: str, person_navne: list[str] | None = None
                 # Besøg forsiden for at hente cookies/session
                 log.info("Tinglysning: indlæser forside...")
                 await page.goto(BASE_URL, wait_until="domcontentloaded", timeout=NAV_TIMEOUT)
-                await page.wait_for_timeout(2000)
+                await page.wait_for_timeout(3000)
 
-                # Kør de tre opslag parallelt
-                tingbog_task   = _soeg_tingbog(page, cvr_clean)
-                bilbog_task    = _soeg_bilbog(page, cvr_clean)
+                # Log hvad siden faktisk viser efter load
+                side_url   = page.url
+                side_title = await page.title()
+                side_tekst = await page.evaluate("() => document.body?.innerText?.slice(0,300) || ''")
+                log.info("Tinglysning forside url=%s title=%s tekst=%s", side_url, side_title, side_tekst[:150])
 
-                tingbog  = await tingbog_task
-                bilbog   = await bilbog_task
+                # Tingbog
+                tingbog = await _soeg_tingbog(page, cvr_clean)
+
+                # Bilbog (separat side)
+                bilbog = await _soeg_bilbog(page, cvr_clean)
 
                 # Personbog: søg på hvert personnavn separat
                 personbog = []
-                for navn in person_navne[:3]:   # maks 3 personer
+                for navn in person_navne[:2]:   # maks 2 personer for at spare tid
                     pb = await _soeg_personbog(page, cvr_clean, navn)
                     personbog.extend(pb)
 
@@ -111,20 +116,27 @@ async def _soeg_tingbog(page: Page, cvr: str) -> list:
         url = f"{BASE_URL}/#/forespørgsel/tingbogen/virksomhed/{cvr}"
         log.info("Tinglysning tingbog url=%s", url)
         await page.goto(url, wait_until="domcontentloaded", timeout=NAV_TIMEOUT)
+        await page.wait_for_timeout(4000)   # Giv SPA tid til at rendere
 
-        # Vent på at indholdet loader (tabel eller 'Ingen resultater')
+        # Debug: log hvad siden faktisk viser
+        aktuel_url = page.url
+        tekst = await page.evaluate("() => document.body?.innerText?.slice(0,400) || ''")
+        log.info("Tingbog efter nav: url=%s tekst=%s", aktuel_url, tekst[:200].replace('\n', ' '))
+
+        # Tjek om siden kræver login
+        if await _kræver_login(page):
+            log.warning("Tinglysning tingbog: kræver login")
+            return []
+
+        # Vent på dynamisk indhold
         await _vent_paa_indhold(page, [
             "[data-test='result-row']",
             ".result-list",
             "table tbody tr",
             ".no-results",
             "[class*='result']",
+            "h1", "h2",
         ])
-
-        # Tjek om siden kræver login
-        if await _kræver_login(page):
-            log.warning("Tinglysning tingbog: kræver login — prøver alternativ URL")
-            return await _soeg_tingbog_alternativ(page, cvr)
 
         return await _udtræk_tingbog_resultater(page)
 
