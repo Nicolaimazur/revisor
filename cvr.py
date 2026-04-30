@@ -11,6 +11,7 @@ from urllib.parse import quote as _url_quote
 from playwright.async_api import async_playwright
 
 from xbrl_fetch import fetch_xbrl_data
+from tinglysning_fetch import fetch_tinglysning_data
 
 GATEWAY_URL = (
     "https://datacvr.virk.dk/gateway/virksomhed/hentVirksomhed"
@@ -1047,6 +1048,12 @@ async def fetch_cvr_data(cvr: str) -> dict:
                 retssager_data = await _fetch_retssager(page, cvr_clean, company_name)
             except Exception:
                 retssager_data = {"resultater": [], "risiko": "lav", "noter": []}
+
+            # ── Feature 5: Tinglysning (tingbog, bilbog, personbog) ───────────
+            try:
+                tinglysning_data = await fetch_tinglysning_data(cvr_clean, alle_navne[:3])
+            except Exception:
+                tinglysning_data = {"tingbog": [], "bilbog": [], "personbog": [], "fejl": None}
         finally:
             # Browser lukkes ALTID — også hvis der sker en fejl undervejs
             try:
@@ -1367,6 +1374,8 @@ def _normalize(
         "koncern_struktur":  koncern_data    or {},    # rekursivt ejerskabstræ
         "historik":          historik_data   or {},    # adresse/navn/direktor-skift + røde flag
         "retssager":         retssager_data  or {},    # statstidende-fund + risiko
+        # ── Feature 5: Tinglysning ──
+        "tinglysning":       tinglysning_data or {},   # tingbog, bilbog, personbog
     }
 
 

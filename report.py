@@ -55,6 +55,7 @@ RISIKO-DATA FRA CVR (brug disse fakta direkte):
 - `historik`: Historiske ændringer fra CVR-registreringer. Felter: `adresse_skift [{dato, tekst}]`, `navn_skift`, `direktor_skift`, `status_skift`, `roede_flag [strenge]`. Hyppige skift er røde flag — brug `roede_flag` direkte i risikovurderingen.
 - `retssager`: Fund fra Statstidende.dk. Felter: `resultater [{kilde, dato, overskrift, tekst}]`, `risiko ("lav"|"middel"|"høj")`. Tom `resultater` = ingen fund = lav risiko. Fund indikerer konkurs/likvidationsbehandling eller rekonstruktion.
 - `trustpilot`: Trustpilot-data hvis tilgængeligt: `{rating, antal, reviews: [{stjerner, titel, tekst, dato}]}`. Brug til at vurdere kundeoplevelse og evt. røde flag (svindel, manglende levering, betalingsproblemer). Tom = ingen Trustpilot-profil fundet.
+- `tinglysning`: Data fra Tinglysningsretten. Felter: `tingbog [{beskrivelse}]` (fast ejendom, panter, hæftelser), `bilbog [{beskrivelse}]` (registrerede køretøjer), `personbog [{type, navn, beskrivelse}]` (virksomhedspant, personlige hæftelser på ejere/direktører). Tom liste = ingen registreringer fundet. Mange/store hæftelser kan indikere likviditetspres.
 
 Risikoniveauer:
 - "lav"    → grøn (ingen bekymringer)
@@ -108,6 +109,12 @@ PÅTEGNINGSHISTORIK (sektion_04.paategninger.historik):
 
 LEDELSESPORTEFØLJE (sektion_08.ledelsesprofiler[].selskaber):
 - De seneste 5 selskaber fra `person_risiko` (aktive + ophørte). `konkurs`=true hvis KONKURS i status.
+
+TINGLYSNING (sektion_10):
+- Brug `tinglysning.tingbog`, `tinglysning.bilbog`, `tinglysning.personbog` fra CVR-data.
+- Tom liste = ingen registreringer fundet. Sæt da `ingen_data_note` = "Ingen registreringer fundet i [register]."
+- Mange hæftelser i tingbogen = muligt likviditetspres — nævn i samlet_vurdering.
+- Virksomhedspant i personbogen er normalt (driftskredit) — kun rødt flag hvis udsædvanligt stort eller på fysiske personer.
 
 RISIKOVURDERING (sektion_09):
 - `risiko_niveau`: "LAV" / "MIDDEL" / "HØJ" — baseret på en samlet vurdering af alle sektioner.
@@ -359,6 +366,30 @@ Returner dette præcise JSON-objekt (ingen kommentarer, kun gyldigt JSON):
       {{"kategori": "<kategori>", "risiko": "lav|middel|høj|ukendt", "handling": "<handling>"}}
     ],
     "ansvarsfraskrivelse": "Denne rapport er udarbejdet på baggrund af offentligt tilgængelige data fra CVR, søgemaskiner og branchedatabaser pr. {today}. Rapporten udgør ikke en juridisk due diligence, en komplet AML-analyse, eller en kreditfaglig vurdering. Revisor er ansvarlig for at indhente den nødvendige yderligere dokumentation i overensstemmelse med gældende lovgivning, herunder hvidvaskloven og revisorlovgivningen."
+  }},
+
+  "sektion_10": {{
+    "tingbog": {{
+      "ejendomme": [
+        {{"beskrivelse": "<adresse/matrikel>", "haeftelser": "<panter og hæftelser eller 'Ingen registrerede hæftelser'>"}}
+      ],
+      "samlet_vurdering": "<kort vurdering — mange/store hæftelser = likviditetspres>",
+      "ingen_data_note": null
+    }},
+    "bilbog": {{
+      "koeretoejer": [
+        {{"beskrivelse": "<køretøjstype/reg.nr.>", "haeftelser": "<gæld i køretøj eller 'Ingen'>"}}
+      ],
+      "samlet_vurdering": "<antal køretøjer og evt. gæld>",
+      "ingen_data_note": null
+    }},
+    "personbog": {{
+      "poster": [
+        {{"type": "virksomhedspant|personlig_haeftelse", "navn": "<person eller virksomhed>", "beskrivelse": "<detaljer>"}}
+      ],
+      "samlet_vurdering": "<vurdering af virksomhedspant og personlige hæftelser>",
+      "ingen_data_note": null
+    }}
   }}
 }}
 """
