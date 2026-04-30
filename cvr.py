@@ -5,9 +5,14 @@ through a headless browser to bypass Cloudflare bot protection.
 """
 
 import asyncio
+import logging
 import re
 import json
 from typing import Optional
+
+log = logging.getLogger("cvr_fetch")
+if not log.handlers:
+    logging.basicConfig(level=logging.INFO)
 from urllib.parse import quote as _url_quote
 from playwright.async_api import async_playwright
 
@@ -131,8 +136,10 @@ async def _fetch_person_risiko(page, enhed_id: str, navn: str) -> dict:
                 co_data = await _fetch_json(page, GATEWAY_URL.format(cvr=cvr_nr), timeout_ms=6000)
                 if co_data:
                     status = (co_data.get("stamdata", {}) or {}).get("status", "") or ""
-            except Exception:
-                pass
+                else:
+                    log.warning("person_risiko: CVR-opslag returnerede ingen data for %s", cvr_nr)
+            except Exception as e:
+                log.warning("person_risiko: CVR-opslag fejlede for %s: %s", cvr_nr, e)
         return rel, status
 
     resultater = await asyncio.gather(
@@ -141,8 +148,11 @@ async def _fetch_person_risiko(page, enhed_id: str, navn: str) -> dict:
     )
 
     konkurser = []
+    timeout_count = 0
     for res in resultater:
         if isinstance(res, Exception):
+            timeout_count += 1
+            log.warning("person_risiko %s: opslag kastede exception: %s", navn, res)
             continue
         rel, status = res
         if any(k in status.upper() for k in _KONKURS_KEYWORDS):
@@ -152,6 +162,10 @@ async def _fetch_person_risiko(page, enhed_id: str, navn: str) -> dict:
                 "status": status,
                 "rolle":  _rolle(rel),
             })
+
+    if timeout_count:
+        log.warning("person_risiko %s: %d/%d selskabsopslag fejlede — konkurshistorik kan være ufuldstændig",
+                    navn, timeout_count, len(unikke_ophoerte))
 
     # Aktive selskaber (summary)
     aktive_unikke = {}
@@ -602,7 +616,7 @@ async def _fetch_trustpilot(page, company_name: str, website: str = "", city: st
         if not search_name:
             return {}
 
-        MIN_SCORE = 0.30   # lidt lavere fordi vi nu søger med renset navn
+        MIN_SCORE = 0.50   # Kræv mindst 50% token-overlap for at undgå falske match
 
         for attempt_name in [search_name, search_name.split()[0] if ' ' in search_name else None]:
             # Anden forsøg: prøv kun første signifikante ord (fx "åben digital" → "åben")
@@ -1017,14 +1031,16 @@ async def fetch_cvr_data(cvr: str) -> dict:
                         try:
                             pr = await _fetch_person_risiko(page, enhed_id, navn)
                             person_risiko.append(pr)
-                        except Exception:
-                            person_risiko.append({"navn": navn, "enhed_id": enhed_id, "konkurser": [], "aktive_selskaber": []})
+                        except Exception as e:
+                            log.warning("person_risiko fejlede for %s (%s): %s", navn, enhed_id, e)
+                            person_risiko.append({"navn": navn, "enhed_id": enhed_id, "konkurser": [], "aktive_selskaber": [], "fetch_fejl": True})
 
             # ── Erhvervsstyrelsens XBRL-register (erstatter proff.dk) ────────
             try:
                 proff_data = await fetch_xbrl_data(cvr_clean)
-            except Exception:
-                proff_data = {}
+            except Exception as e:
+                log.error("XBRL-hentning fejlede for CVR %s: %s", cvr_clean, e)
+                proff_data = {"fetch_fejl": True}
 
             # ── Trustpilot ───────────────────────────────────────────────────
             stam = response.get("stamdata", {}) or {}
@@ -1033,7 +1049,8 @@ async def fetch_cvr_data(cvr: str) -> dict:
             city         = stam.get("postnummerOgBy", "")
             try:
                 trustpilot_data = await _fetch_trustpilot(page, company_name, website, city)
-            except Exception:
+            except Exception as e:
+                log.warning("Trustpilot-hentning fejlede for %s: %s", company_name, e)
                 trustpilot_data = {}
 
             # ── Feature 1: PEP & sanctions screening (OpenSanctions) ─────────
@@ -1053,21 +1070,24 @@ async def fetch_cvr_data(cvr: str) -> dict:
                     if n and n not in alle_navne:
                         alle_navne.append(n)
             try:
-                sanctions_data = await _fetch_sanctions(page, alle_navne[:10])  # max 10 navne
-            except Exception:
+                sanctions_data = await _fetch_sanctions(page, alle_navne[:10])
+            except Exception as e:
+                log.warning("Sanctions-screening fejlede: %s", e)
                 sanctions_data = []
 
             # ── Feature 2: Rekursiv koncernstruktur ───────────────────────────
             try:
                 visited_cvr = set()
                 koncern_data = await _build_koncern_node(page, cvr_clean, visited_cvr, depth=0)
-            except Exception:
+            except Exception as e:
+                log.warning("Koncernstruktur-hentning fejlede for CVR %s: %s", cvr_clean, e)
                 koncern_data = {"cvr": cvr_clean, "navn": company_name, "ejere": []}
 
             # ── Feature 3: Historiske ændringer (synkron parsing) ────────────
             try:
                 historik_data = _parse_historik(response)
-            except Exception:
+            except Exception as e:
+                log.warning("Historik-parsing fejlede for CVR %s: %s", cvr_clean, e)
                 historik_data = {"adresse_skift": [], "navn_skift": [], "direktor_skift": [], "status_skift": [], "roede_flag": []}
 
             # ── Feature 4: Retssager & inkasso (Statstidende) ────────────────
@@ -1147,6 +1167,7 @@ def _parse_noegletal_response(noegletal_data) -> dict:
             hits = re.findall(r'\d{4}', periode)
             aar = hits[-1] if hits else ""
         if not aar:
+            log.warning("Nøgletal: kunne ikke udtrække årstal fra periode='%s' — entry springes over", periode)
             continue
 
         kpis = {}

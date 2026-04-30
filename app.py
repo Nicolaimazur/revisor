@@ -1,5 +1,5 @@
 """
-FastAPI backend — Revisor Due Diligence Platform.
+FastAPI backend — Revidera Due Diligence Platform.
 
 Start:  uvicorn app:app --reload
 """
@@ -46,6 +46,15 @@ def _token_for(password: str) -> str:
     """Deterministisk token — samme kodeord giver altid samme token."""
     secret = os.environ.get("ANTHROPIC_API_KEY", "fallback")[:16]
     return hashlib.sha256(f"{password}:{secret}".encode()).hexdigest()
+
+
+def _valid_cvr_checksum(cvr: str) -> bool:
+    """Validér dansk CVR-nummer med officiel vægt-algoritme (mod 11)."""
+    if len(cvr) != 8 or not cvr.isdigit():
+        return False
+    weights = [2, 7, 6, 5, 4, 3, 2, 1]
+    total = sum(int(c) * w for c, w in zip(cvr, weights))
+    return total % 11 == 0
 
 
 def _valid_token(token: str) -> bool:
@@ -168,7 +177,7 @@ async def _run_job(job_id: str, cvr: str):
 
 # ── App ───────────────────────────────────────────────────────────────────────
 
-app = FastAPI(title="Revisor Due Diligence Platform")
+app = FastAPI(title="Revidera Due Diligence Platform")
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
 AUTH = Depends(require_auth)
@@ -223,6 +232,8 @@ async def generate(req: GenerateRequest):
     cvr = req.cvr.replace(" ", "").strip()
     if len(cvr) != 8 or not cvr.isdigit():
         raise HTTPException(status_code=400, detail="CVR-nummer skal være 8 cifre.")
+    if not _valid_cvr_checksum(cvr):
+        raise HTTPException(status_code=400, detail=f"CVR-nummer {cvr} er ugyldigt (fejl i kontrolciffer).")
 
     job_id = str(uuid.uuid4())
     _JOBS[job_id] = {

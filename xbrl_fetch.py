@@ -72,7 +72,7 @@ async def fetch_xbrl_data(cvr: str, max_years: int = 5) -> dict:
         return {}
 
     headers = {
-        "User-Agent": "RevisorDD/1.0 (+https://revisor-production.up.railway.app)",
+        "User-Agent": "Revidera/1.0 (+https://revisor-production.up.railway.app)",
         "Accept":       "application/json; charset=utf-8",
         "Content-Type": "application/json",
     }
@@ -229,6 +229,7 @@ def _parse_xbrl(xml_bytes: bytes) -> dict:
             contexts[cid] = end_date
 
     if not contexts:
+        log.warning("XBRL parse: ingen contexts fundet — filen er sandsynligvis malformed eller tom")
         return {}
 
     # ── B) Udtræk finansielle værdier per context ────────────────────────────

@@ -446,12 +446,45 @@ async def generate_report_data(cvr_data: dict) -> dict:
 
     # Parse JSON med fallback-fejlmeddelelse hvis det er ugyldigt
     try:
-        return json.loads(raw)
+        report = json.loads(raw)
     except json.JSONDecodeError as e:
         raise ValueError(
             f"Claude returnerede ugyldig JSON (position {e.pos}). "
             "Dette sker sjældent — prøv at generere rapporten igen."
         )
+
+    # ── Minimums-validering: kritiske felter skal være til stede ──────────────
+    # Sikrer at rapporten ikke stiltiende mangler vigtige sektioner
+    _REQUIRED = {
+        "meta":       ["cvr", "selskabsnavn"],
+        "sektion_01": ["selskabsnavn", "cvr"],
+        "sektion_02": ["direktion"],
+        "sektion_04": ["aar_kolonner", "regnskabspost_tabel"],
+        "sektion_09": ["risiko_niveau", "samlet_vurdering"],
+    }
+    mangler = []
+    for sektion, felter in _REQUIRED.items():
+        if sektion not in report:
+            mangler.append(sektion)
+            continue
+        for felt in felter:
+            if felt not in report[sektion]:
+                mangler.append(f"{sektion}.{felt}")
+
+    if mangler:
+        import logging as _log
+        _log.getLogger("report").warning(
+            "Claude JSON mangler felter: %s — rapporten vises alligevel", mangler
+        )
+        # Indsæt tomme standardværdier så downstream-kode ikke crasher
+        for sektion, felter in _REQUIRED.items():
+            if sektion not in report:
+                report[sektion] = {}
+            for felt in felter:
+                if felt not in report[sektion]:
+                    report[sektion][felt] = None
+
+    return report
 
 
 def _danish_date() -> str:
