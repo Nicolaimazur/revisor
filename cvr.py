@@ -4,6 +4,7 @@ Uses datacvr.virk.dk's gateway API (same data the website shows publicly)
 through a headless browser to bypass Cloudflare bot protection.
 """
 
+import asyncio
 import re
 import json
 from typing import Optional
@@ -110,21 +111,47 @@ async def _fetch_person_risiko(page, enhed_id: str, navn: str) -> dict:
         key = r.get("tekstnogle", "").replace("erstdist-organisation-rolle-", "")
         return rolle_map.get(key, key)
 
-    # Collect unique bankrupt companies
-    seen_cvr = set()
-    konkurser = []
+    # Collect unique bankrupt/dissolved companies.
+    # Person-API returnerer ofte tom virksomhedsstatus — opslag på selskabets CVR
+    # er nødvendigt for at få den faktiske status (TVANGSOPLØST, KONKURS etc.)
+    seen_cvr: set = set()
+    unikke_ophoerte = []
     for rel in ophoerte:
+        cvr_nr = rel.get("cvrnummer", "")
+        if cvr_nr and cvr_nr not in seen_cvr:
+            seen_cvr.add(cvr_nr)
+            unikke_ophoerte.append(rel)
+
+    # Hent status parallelt for alle ophørte selskaber (maks 20)
+    async def _hent_status(rel):
         status = rel.get("virksomhedsstatus") or ""
+        cvr_nr = rel.get("cvrnummer", "")
+        if not status and cvr_nr:
+            try:
+                co_data = await _fetch_json(page, GATEWAY_URL.format(cvr=cvr_nr), timeout_ms=6000)
+                if co_data:
+                    status = (co_data.get("stamdata", {}) or {}).get("status", "") or ""
+            except Exception:
+                pass
+        return rel, status
+
+    resultater = await asyncio.gather(
+        *[_hent_status(r) for r in unikke_ophoerte[:20]],
+        return_exceptions=True,
+    )
+
+    konkurser = []
+    for res in resultater:
+        if isinstance(res, Exception):
+            continue
+        rel, status = res
         if any(k in status.upper() for k in _KONKURS_KEYWORDS):
-            cvr_nr = rel.get("cvrnummer", "")
-            if cvr_nr not in seen_cvr:
-                seen_cvr.add(cvr_nr)
-                konkurser.append({
-                    "cvr":     cvr_nr,
-                    "navn":    rel.get("senesteNavn", ""),
-                    "status":  status,
-                    "rolle":   _rolle(rel),
-                })
+            konkurser.append({
+                "cvr":    rel.get("cvrnummer", ""),
+                "navn":   rel.get("senesteNavn", ""),
+                "status": status,
+                "rolle":  _rolle(rel),
+            })
 
     # Aktive selskaber (summary)
     aktive_unikke = {}
