@@ -84,32 +84,47 @@ async def _resolve_owner_cvr(page, enhed_id: str) -> Optional[str]:
 _KONKURS_KEYWORDS = ["KONKURS", "TVANGS", "LIKVIDATION"]
 
 
+def _navn_slug(navn: str) -> str:
+    """Konverter 'Jan Revald' → 'jan-revald' som datacvr.virk.dk bruger i person-URL'er."""
+    import unicodedata
+    nfkd = unicodedata.normalize("NFKD", navn.lower())
+    ascii_s = nfkd.encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]+", "-", ascii_s).strip("-")
+
+
 async def _fetch_person_risiko(page, enhed_id: str, navn: str) -> dict:
     """
     Hent persons selskabshistorik og markér eventuelle konkurs/tvangsopløste selskaber.
 
-    Bruger Playwright response-interception: navigerer til personens side på
-    datacvr.virk.dk og opfanger det hentPerson API-kald som sidens JavaScript
-    selv foretager med korrekte session-cookies.  Det er præcis den samme
-    teknik der fungerer for al selskabsdata.
+    datacvr.virk.dk bruger navn-baserede URL'er for personer:
+      /enhed/person/jan-revald  (ikke numerisk ID)
+    Vi navigerer til personens side og opfanger hentPerson API-kaldet som sidens
+    JavaScript laver med korrekte session-cookies.
     """
     captured: dict = {}
 
     async def _on_response(response):
         try:
-            if "hentPerson" in response.url and str(enhed_id) in response.url:
-                captured["data"] = await response.json()
+            if "hentPerson" in response.url:
+                data = await response.json()
+                # Accepter kun hvis det er den rigtige person (enhed_id i URL)
+                # eller som fallback hvis vi endnu intet har opfanget
+                if str(enhed_id) in response.url or "data" not in captured:
+                    captured["data"] = data
         except Exception:
             pass
+
+    slug = _navn_slug(navn)
+    log.info("person_risiko %s: navigerer til /enhed/person/%s", navn, slug)
 
     page.on("response", _on_response)
     try:
         await page.goto(
-            f"https://datacvr.virk.dk/enhed/person/{enhed_id}",
+            f"https://datacvr.virk.dk/enhed/person/{slug}",
             wait_until="networkidle",
             timeout=25000,
         )
-        await page.wait_for_timeout(1500)   # giv SPA tid til evt. sekundære kald
+        await page.wait_for_timeout(2000)   # giv SPA tid til evt. sekundære kald
     except Exception as e:
         log.warning("person_risiko %s (%s): navigation fejlede: %s", navn, enhed_id, e)
     finally:
@@ -117,10 +132,17 @@ async def _fetch_person_risiko(page, enhed_id: str, navn: str) -> dict:
 
     data = captured.get("data")
     if not data:
-        log.warning("person_risiko %s (%s): ingen data opfanget", navn, enhed_id)
+        log.warning("person_risiko %s (%s): ingen data opfanget fra slug=%s", navn, enhed_id, slug)
         return {"navn": navn, "enhed_id": enhed_id, "konkurser": [], "aktive_selskaber": []}
 
-    log.info("person_risiko %s: data opfanget, top-keys=%s", navn, list(data.keys()))
+    top_keys = list(data.keys()) if isinstance(data, dict) else []
+    log.info("person_risiko %s: data opfanget, top-keys=%s", navn, top_keys)
+
+    # Fejlside-detektion (Spring Boot 404: {"timestamp","status","error","path"})
+    if "error" in top_keys and "status" in top_keys and "personRelationer" not in top_keys:
+        log.warning("person_risiko %s: slug=%s returnerede fejlside (status=%s)",
+                    navn, slug, data.get("status"))
+        return {"navn": navn, "enhed_id": enhed_id, "konkurser": [], "aktive_selskaber": []}
 
     relationer = (data.get("personRelationer") or {})
     aktive  = relationer.get("aktiveRelationer",  []) or []
