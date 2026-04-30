@@ -91,8 +91,8 @@ PERSON_URL = (
 )
 
 PERSON_SOEG_URL = (
-    "https://datacvr.virk.dk/gateway/person/soeg"
-    "?fritekst={navn_enc}&locale=da&sideIndex=0&size=20"
+    "https://datacvr.virk.dk/gateway/virksomhed/soeg"
+    "?deltagerEnhedsnummer={enhed_id}&locale=da&sideIndex=0&size=50"
 )
 
 
@@ -148,11 +148,10 @@ async def _fetch_person_risiko(page, enhed_id: str, navn: str) -> dict:
 
     log.info("person_risiko %s: unikke ophørte fra hentPerson=%d", navn, len(unikke_ophoerte))
 
-    # ── Trin 2: Søg-fallback hvis ingen ophørte relationer ───────────────────
+    # ── Trin 2: Selskabssøgning på deltager-enhedsnummer (fallback) ─────────
     soeg_resultater = []
     if not unikke_ophoerte:
-        navn_enc = _url_quote(navn)
-        soeg_url = PERSON_SOEG_URL.format(navn_enc=navn_enc)
+        soeg_url = PERSON_SOEG_URL.format(enhed_id=enhed_id)
         soeg_data = await _fetch_json(page, soeg_url, timeout_ms=10000)
 
         # Log råsvaret for at forstå strukturen
@@ -182,13 +181,15 @@ async def _fetch_person_risiko(page, enhed_id: str, navn: str) -> dict:
 
         for enhed in (enheder or []):
             cvr_nr = str(enhed.get("cvrNummer") or enhed.get("cvrnummer") or "")
-            e_navn = enhed.get("senesteNavn") or enhed.get("navn") or ""
-            status = enhed.get("virksomhedsstatus") or enhed.get("status") or ""
+            e_navn = (enhed.get("senesteNavn") or enhed.get("navn") or "")
+            status = str(enhed.get("virksomhedsstatus") or enhed.get("status") or "").upper()
             if cvr_nr and cvr_nr not in seen_cvr:
                 seen_cvr.add(cvr_nr)
+                log.info("person_risiko %s: soeg selskab CVR=%s navn=%s status=%s",
+                         navn, cvr_nr, e_navn, status)
                 soeg_resultater.append({
                     "cvr": cvr_nr, "navn": e_navn,
-                    "status": str(status).upper(), "rolle": "—",
+                    "status": status, "rolle": "—",
                 })
 
     # ── Evaluer konkurser ────────────────────────────────────────────────────
