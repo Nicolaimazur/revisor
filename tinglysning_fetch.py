@@ -55,7 +55,10 @@ async def fetch_tinglysning_data(cvr: str, person_navne: list[str] | None = None
 
     try:
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            browser = await p.chromium.launch(
+                headless=True,
+                args=["--disable-http2"],  # tinglysning.dk understøtter ikke HTTP/2
+            )
             try:
                 context = await browser.new_context(
                     user_agent=(
@@ -64,6 +67,8 @@ async def fetch_tinglysning_data(cvr: str, person_navne: list[str] | None = None
                         "Chrome/124.0.0.0 Safari/537.36"
                     ),
                     locale="da-DK",
+                    # Tinglysning.dk understøtter ikke HTTP/2
+                    extra_http_headers={"Connection": "keep-alive"},
                 )
                 page = await context.new_page()
 
