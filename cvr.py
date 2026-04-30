@@ -10,6 +10,8 @@ import re
 import json
 from typing import Optional
 
+import httpx
+
 log = logging.getLogger("cvr_fetch")
 if not log.handlers:
     logging.basicConfig(level=logging.INFO)
@@ -81,129 +83,157 @@ async def _resolve_owner_cvr(page, enhed_id: str) -> Optional[str]:
         return None
 
 
-PERSON_URL = (
-    "https://datacvr.virk.dk/gateway/person/hentPerson"
-    "?enhedsnummer={enhed_id}&persontype=deltager&locale=da"
-)
-
 _KONKURS_KEYWORDS = ["KONKURS", "TVANGS", "LIKVIDATION"]
+
+# Erhvervsstyrelsens offentlige Elasticsearch — deltager-index (ingen auth, aldrig blokeret)
+_DIST_DELTAGER_URL = "http://distribution.virk.dk/cvr-permanent/deltager/_search"
+
+_DIST_HEADERS = {
+    "User-Agent":   "Revidera/1.0 (+https://revisor-production.up.railway.app)",
+    "Accept":       "application/json; charset=utf-8",
+    "Content-Type": "application/json",
+}
 
 
 async def _fetch_person_risiko(page, enhed_id: str, navn: str) -> dict:
     """
-    Fetch a person's company history and flag any that went bankrupt.
-    Returns a dict with the person's name and list of bankrupt/dissolved companies.
+    Hent persons selskabshistorik og markér eventuelle konkurs/tvangsopløste selskaber.
+
+    Bruger distribution.virk.dk/cvr-permanent/deltager/_search (offentlig ES,
+    ingen authentication, samme kilde som XBRL-data) i stedet for
+    datacvr.virk.dk/gateway/person/hentPerson som kræver session-cookies for
+    at returnere relationer.
     """
-    data = await _fetch_json(page, PERSON_URL.format(enhed_id=enhed_id))
-    if not data:
-        log.warning("person_risiko %s (%s): ingen data fra person-API", navn, enhed_id)
-        return {"navn": navn, "enhed_id": enhed_id, "konkurser": [], "aktive_selskaber": []}
+    try:
+        transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0", retries=2)
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0, connect=10.0),
+            headers=_DIST_HEADERS,
+            transport=transport,
+        ) as client:
+            query = {
+                "query": {"term": {"Vrdeltagerperson.enhedsNummer": int(enhed_id)}},
+                "size": 1,
+                "_source": ["Vrdeltagerperson.virksomhedsrelationer",
+                            "Vrdeltagerperson.navne"],
+            }
+            resp = await client.post(_DIST_DELTAGER_URL, json=query)
+            if resp.status_code != 200:
+                log.warning("person_risiko %s: ES status=%s", navn, resp.status_code)
+                return {"navn": navn, "enhed_id": enhed_id, "konkurser": [], "aktive_selskaber": []}
 
-    # Debug: log top-level keys so we can see the actual structure
-    top_keys = list(data.keys()) if isinstance(data, dict) else []
-    log.info("person_risiko %s: API top-keys=%s", navn, top_keys)
+            hits = (resp.json().get("hits") or {}).get("hits") or []
+            if not hits:
+                log.warning("person_risiko %s (%s): ingen ES-hits", navn, enhed_id)
+                return {"navn": navn, "enhed_id": enhed_id, "konkurser": [], "aktive_selskaber": []}
 
-    relationer = data.get("personRelationer", {}) or {}
-    rel_keys = list(relationer.keys()) if isinstance(relationer, dict) else []
-    log.info("person_risiko %s: personRelationer keys=%s", navn, rel_keys)
+            src = hits[0].get("_source", {}) or {}
+            relationer = (src.get("Vrdeltagerperson", {}) or {}).get("virksomhedsrelationer") or []
+            log.info("person_risiko %s: ES relationer=%d", navn, len(relationer))
 
-    aktive = relationer.get("aktiveRelationer", []) or []
-    ophoerte = relationer.get("ophoerteRelationer", []) or []
-    log.info("person_risiko %s: aktive=%d ophoerte=%d", navn, len(aktive), len(ophoerte))
+            aktive_selskaber = []
+            ophoerte_med_cvr = {}   # cvr → rel
 
-    rolle_map = {
-        "adm_dir":           "Adm. direktør",
-        "direktoerer":       "Direktør",
-        "direktion":         "Direktør",
-        "bestyrelsesmedlemmer": "Bestyrelsesmedlem",
-        "stiftere":          "Stifter",
-        "legale_ejere":      "Legal ejer",
-        "fuldt_ansvarlig_deltagere": "Fuldt ansvarlig deltager",
-    }
-
-    def _rolle(r):
-        key = r.get("tekstnogle", "").replace("erstdist-organisation-rolle-", "")
-        return rolle_map.get(key, key)
-
-    # Collect unique bankrupt/dissolved companies.
-    # Person-API returnerer ofte tom virksomhedsstatus — opslag på selskabets CVR
-    # er nødvendigt for at få den faktiske status (TVANGSOPLØST, KONKURS etc.)
-    seen_cvr: set = set()
-    unikke_ophoerte = []
-    for rel in ophoerte:
-        cvr_nr = rel.get("cvrnummer", "")
-        if cvr_nr and cvr_nr not in seen_cvr:
-            seen_cvr.add(cvr_nr)
-            unikke_ophoerte.append(rel)
-        elif not cvr_nr:
-            log.warning("person_risiko %s: ophørt relation mangler cvrnummer: %s", navn, rel)
-
-    log.info("person_risiko %s: unikke ophørte CVR'er=%d: %s",
-             navn, len(unikke_ophoerte), [r.get("cvrnummer") for r in unikke_ophoerte])
-
-    # Hent status parallelt for alle ophørte selskaber (maks 20)
-    async def _hent_status(rel):
-        status = rel.get("virksomhedsstatus") or ""
-        cvr_nr = rel.get("cvrnummer", "")
-        selskab_navn = rel.get("senesteNavn", "")
-        log.info("person_risiko %s: checker CVR %s (%s) — inline_status=%r",
-                 navn, cvr_nr, selskab_navn, status)
-        if not status and cvr_nr:
-            try:
-                co_data = await _fetch_json(page, GATEWAY_URL.format(cvr=cvr_nr), timeout_ms=8000)
-                if co_data:
-                    status = (co_data.get("stamdata", {}) or {}).get("status", "") or ""
-                    log.info("person_risiko %s: CVR %s (%s) → status=%r",
-                             navn, cvr_nr, selskab_navn, status)
+            for rel in relationer:
+                cvr_nr = str(rel.get("cvrnummer", "") or "")
+                org_navn = rel.get("virksomhedsnavn", [{}])
+                if isinstance(org_navn, list) and org_navn:
+                    org_navn = org_navn[-1].get("navn", "")
+                elif isinstance(org_navn, str):
+                    pass
                 else:
-                    log.warning("person_risiko %s: CVR-opslag returnerede ingen data for %s (%s)",
-                                navn, cvr_nr, selskab_navn)
-            except Exception as e:
-                log.warning("person_risiko %s: CVR-opslag fejlede for %s (%s): %s",
-                            navn, cvr_nr, selskab_navn, e)
-        return rel, status
+                    org_navn = ""
 
-    resultater = await asyncio.gather(
-        *[_hent_status(r) for r in unikke_ophoerte[:20]],
-        return_exceptions=True,
-    )
+                periode = rel.get("periode", {}) or {}
+                slut = periode.get("gyldigTil") or ""
+                start = periode.get("gyldigFra") or ""
 
-    konkurser = []
-    timeout_count = 0
-    for res in resultater:
-        if isinstance(res, Exception):
-            timeout_count += 1
-            log.warning("person_risiko %s: opslag kastede exception: %s", navn, res)
-            continue
-        rel, status = res
-        if any(k in status.upper() for k in _KONKURS_KEYWORDS):
-            konkurser.append({
-                "cvr":    rel.get("cvrnummer", ""),
-                "navn":   rel.get("senesteNavn", ""),
-                "status": status,
-                "rolle":  _rolle(rel),
-            })
+                if slut:   # ophørt relation
+                    if cvr_nr and cvr_nr not in ophoerte_med_cvr:
+                        ophoerte_med_cvr[cvr_nr] = {
+                            "cvr":       cvr_nr,
+                            "navn":      org_navn,
+                            "rolle":     rel.get("organisationsNavn", [{}])[-1].get("navn", "") if rel.get("organisationsNavn") else "",
+                            "gyldig_til": slut,
+                        }
+                else:      # aktiv relation
+                    if org_navn and org_navn not in aktive_selskaber:
+                        aktive_selskaber.append(org_navn)
 
-    if timeout_count:
-        log.warning("person_risiko %s: %d/%d selskabsopslag fejlede — konkurshistorik kan være ufuldstændig",
-                    navn, timeout_count, len(unikke_ophoerte))
+            log.info("person_risiko %s: aktive=%d ophoerte_unikke=%d CVR=%s",
+                     navn, len(aktive_selskaber), len(ophoerte_med_cvr),
+                     list(ophoerte_med_cvr.keys()))
 
-    log.info("person_risiko %s: fandt %d konkurs/tvangs/likvidations-selskaber: %s",
-             navn, len(konkurser), [k.get("navn") for k in konkurser])
+            # Hent status for ophørte selskaber parallelt via distribution.virk.dk
+            async def _hent_virk_status(cvr_nr: str) -> tuple:
+                q = {
+                    "query": {"term": {"Vrvirksomhed.cvrNummer": int(cvr_nr)}},
+                    "size": 1,
+                    "_source": ["Vrvirksomhed.virksomhedsstatus",
+                                "Vrvirksomhed.navne",
+                                "Vrvirksomhed.livsforloeb"],
+                }
+                try:
+                    r = await client.post(
+                        "http://distribution.virk.dk/cvr-permanent/virksomhed/_search",
+                        json=q,
+                        timeout=10.0,
+                    )
+                    if r.status_code != 200:
+                        return cvr_nr, ""
+                    v_hits = (r.json().get("hits") or {}).get("hits") or []
+                    if not v_hits:
+                        return cvr_nr, ""
+                    v_src = v_hits[0].get("_source", {}).get("Vrvirksomhed", {}) or {}
 
-    # Aktive selskaber (summary)
-    aktive_unikke = {}
-    for rel in aktive:
-        cvr_nr = rel.get("cvrnummer", "")
-        if cvr_nr not in aktive_unikke:
-            aktive_unikke[cvr_nr] = rel.get("senesteNavn", "")
+                    # Status er en liste — tag seneste (ingen gyldigTil eller seneste dato)
+                    statuser = v_src.get("virksomhedsstatus") or []
+                    status_str = ""
+                    for s in reversed(statuser):
+                        val = (s.get("status") or s.get("statustekst") or "").upper()
+                        if val:
+                            status_str = val
+                            break
 
-    return {
-        "navn":             navn,
-        "enhed_id":         enhed_id,
-        "aktive_selskaber": list(aktive_unikke.values()),
-        "konkurser":        konkurser,   # list of companies gone bankrupt with this person
-    }
+                    log.info("person_risiko %s: CVR %s → status=%r", navn, cvr_nr, status_str)
+                    return cvr_nr, status_str
+                except Exception as e:
+                    log.warning("person_risiko %s: status-opslag fejlede CVR %s: %s", navn, cvr_nr, e)
+                    return cvr_nr, ""
+
+            status_results = await asyncio.gather(
+                *[_hent_virk_status(c) for c in list(ophoerte_med_cvr.keys())[:25]],
+                return_exceptions=True,
+            )
+
+            konkurser = []
+            for res in status_results:
+                if isinstance(res, Exception):
+                    log.warning("person_risiko %s: status gather exception: %s", navn, res)
+                    continue
+                cvr_nr, status = res
+                if any(k in status for k in _KONKURS_KEYWORDS):
+                    info = ophoerte_med_cvr[cvr_nr]
+                    konkurser.append({
+                        "cvr":    cvr_nr,
+                        "navn":   info["navn"],
+                        "status": status,
+                        "rolle":  info["rolle"],
+                    })
+
+            log.info("person_risiko %s: fandt %d konkurs/tvangs-selskaber: %s",
+                     navn, len(konkurser), [k["navn"] for k in konkurser])
+
+            return {
+                "navn":             navn,
+                "enhed_id":         enhed_id,
+                "aktive_selskaber": aktive_selskaber,
+                "konkurser":        konkurser,
+            }
+
+    except Exception as e:
+        log.error("person_risiko %s (%s) fejlede: %s", navn, enhed_id, e)
+        return {"navn": navn, "enhed_id": enhed_id, "konkurser": [], "aktive_selskaber": [], "fetch_fejl": True}
 
 
 async def _fetch_owner_risiko(page, cvr: str) -> dict:
